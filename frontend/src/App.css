@@ -1254,6 +1254,19 @@ h1, h2, h3, h4, h5, h6 {
   padding: 1.5rem;
 }
 
+.flag-card.clickable-flag {
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+}
+
+.flag-card.clickable-flag:hover {
+  border-color: var(--teal-primary);
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.1);
+  transform: translateY(-1px);
+}
+
 .flag-header {
   display: flex;
   align-items: center;

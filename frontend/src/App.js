@@ -370,6 +370,7 @@ function App() {
   const [allSubmissions, setAllSubmissions] = useState([]);
   const [historyMember, setHistoryMember] = useState(null);
   const [viewedSubmission, setViewedSubmission] = useState(null);
+  const [healthDetailMember, setHealthDetailMember] = useState(null);
   const [briefing, setBriefing] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
   
@@ -1239,7 +1240,56 @@ RULES:
                 </div>
               )}
 
-              {managerTab === 'team_health' && (
+              {managerTab === 'team_health' && viewedSubmission && (
+                <div className="tab-content" data-testid="health-submission-detail">
+                  <div className="submission-detail">
+                    <button 
+                      className="btn-back" 
+                      onClick={() => setViewedSubmission(null)} 
+                      data-testid="back-from-health-detail"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      </svg>
+                      Back to history
+                    </button>
+
+                    <div className="submission-detail-header">
+                      <Avatar name={members.find(m => m._id === viewedSubmission.member_id)?.name || 'Unknown'} size={56} />
+                      <div>
+                        <h2 className="submission-detail-name">{members.find(m => m._id === viewedSubmission.member_id)?.name || 'Unknown'}</h2>
+                        <div className="submission-detail-date">{formatDateLong(viewedSubmission.date)}</div>
+                      </div>
+                    </div>
+
+                    <div className="submission-detail-content">
+                      <div className="questions-section">
+                        <h3 className="section-subheading">Performance & Progress</h3>
+                        {QUESTIONS.filter(q => q.section === 'performance').map(question => (
+                          <RatingCommentDisplay
+                            key={question.id}
+                            question={question}
+                            value={viewedSubmission.responses?.[question.id]}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="questions-section">
+                        <h3 className="section-subheading">Wellbeing & Support</h3>
+                        {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
+                          <RatingCommentDisplay
+                            key={question.id}
+                            question={question}
+                            value={viewedSubmission.responses?.[question.id]}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {managerTab === 'team_health' && !healthDetailMember && !viewedSubmission && (
                 <div className="tab-content" data-testid="team-health-content">
                   <div className="section-header">
                     <h3 className="section-heading">Active Signals</h3>
@@ -1255,7 +1305,12 @@ RULES:
                       {flags.map(flag => {
                         const member = members.find(m => m._id === flag.member_id);
                         return (
-                          <div key={flag._id} className="flag-card" data-testid={`flag-${flag._id}`}>
+                          <button
+                            key={flag._id}
+                            className="flag-card clickable-flag"
+                            onClick={() => setHealthDetailMember(member)}
+                            data-testid={`flag-${flag._id}`}
+                          >
                             <div className="flag-header">
                               <div className="flag-member">
                                 {member && <Avatar name={member.name} size={32} />}
@@ -1280,11 +1335,59 @@ RULES:
                                 </div>
                               )}
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {managerTab === 'team_health' && healthDetailMember && !viewedSubmission && (
+                <div className="tab-content" data-testid="health-detail-panel">
+                  <div className="history-panel">
+                    <div className="history-header">
+                      <button className="btn-back" onClick={() => setHealthDetailMember(null)} data-testid="back-to-health">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back
+                      </button>
+                      <div className="history-member-info">
+                        <Avatar name={healthDetailMember.name} size={48} />
+                        <div>
+                          <div className="history-member-name">{healthDetailMember.name}</div>
+                          <div className="history-member-title">{healthDetailMember.title}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="history-submissions">
+                      <h3 className="history-title">Weekly submissions ({allSubmissions.filter(s => s.member_id === healthDetailMember._id).length} weeks)</h3>
+                      
+                      <div className="history-list">
+                        {allSubmissions
+                          .filter(s => s.member_id === healthDetailMember._id)
+                          .sort((a, b) => b.date.localeCompare(a.date))
+                          .map(submission => (
+                            <button
+                              key={submission._id}
+                              className="history-row"
+                              onClick={() => setViewedSubmission(submission)}
+                              data-testid={`health-history-row-${submission.date}`}
+                            >
+                              <div className="history-date">{formatDateLong(submission.date)}</div>
+                              <div className="history-row-right">
+                                <ScoreChips submission={submission} />
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

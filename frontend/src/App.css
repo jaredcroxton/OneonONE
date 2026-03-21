@@ -1900,3 +1900,219 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   padding: 1rem 0;
 }
+
+/* EXECUTIVE DASHBOARD */
+.exec-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.exec-kpi {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.exec-kpi-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-on-light);
+  margin-bottom: 0.5rem;
+}
+
+.exec-kpi-label {
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+  font-weight: 500;
+}
+
+.org-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.heatmap-row {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: 1.25rem 1.5rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  transition: box-shadow 0.2s;
+}
+
+.heatmap-row:hover {
+  box-shadow: 0 4px 12px rgba(11, 18, 32, 0.08);
+}
+
+.heatmap-team-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 0.25rem;
+}
+
+.heatmap-team-manager {
+  font-size: 0.8125rem;
+  color: var(--text-on-light-muted);
+}
+
+.heatmap-health {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.heatmap-health-score {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.heatmap-health-trend {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.heatmap-metrics {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.heatmap-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.heatmap-metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.heatmap-metric-label {
+  font-size: 0.75rem;
+  color: var(--text-on-light-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.heatmap-mini-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 40px;
+}
+
+.heatmap-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.4s ease;
+  min-height: 4px;
+}
+
+.attrition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.attrition-card {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+}
+
+.attrition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.attrition-role-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 0.25rem;
+}
+
+.attrition-role-team {
+  font-size: 0.8125rem;
+  color: var(--text-on-light-muted);
+}
+
+.attrition-risk-score {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.attrition-reason {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.6;
+}
+
+.replacement-cost-banner {
+  margin-top: 3rem;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(245, 158, 11, 0.05));
+  border: 2px solid rgba(239, 68, 68, 0.15);
+  border-radius: var(--radius-card);
+  padding: 2rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.replacement-cost-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.replacement-cost-content {
+  flex: 1;
+}
+
+.replacement-cost-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #EF4444;
+  margin-bottom: 0.5rem;
+}
+
+.replacement-cost-text {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  margin-bottom: 0.75rem;
+}
+
+.replacement-cost-amount {
+  font-size: 1.125rem;
+  color: var(--text-on-light);
+}
+
+.replacement-cost-amount strong {
+  font-weight: 700;
+  color: #EF4444;
+}

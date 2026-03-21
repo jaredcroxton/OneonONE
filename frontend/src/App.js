@@ -379,7 +379,14 @@ function App() {
     if (token && userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      setView(parsedUser.role === 'manager' ? 'manager' : 'team_member');
+      
+      if (parsedUser.role === 'manager') {
+        setView('manager');
+      } else if (parsedUser.role === 'executive') {
+        setView('executive');
+      } else {
+        setView('team_member');
+      }
     }
   }, []);
 
@@ -429,6 +436,94 @@ function App() {
     setToast({ message, type });
   };
 
+  // Simulated org-wide team data for executive view
+  const orgTeams = useMemo(() => {
+    // Engineering - calculated from real data
+    const engHealth = dashboardStats?.team_health_score || 0;
+    const engFlags = flags.filter(f => f.status === 'open').length;
+    const engAtRisk = members.filter(m => {
+      const memberSubs = allSubmissions.filter(s => s.member_id === m._id);
+      const health = getHealthStatus(memberSubs);
+      return health === 'risk';
+    }).length;
+
+    return [
+      {
+        id: 'team_cs',
+        name: 'Customer Success',
+        manager: 'Liam Park',
+        headcount: 7,
+        health: 41,
+        trend: [65, 60, 55, 48, 41],
+        activeFlags: 5,
+        riskMembers: 2,
+        attrition: [
+          { role: 'CS Team Lead', risk: 71, reason: 'Wellbeing dropped 4→2, workload at 1/5, raised issues 4 times with no resolution' },
+          { role: 'Account Manager', risk: 55, reason: 'Missed 2 reflections, responses declining, minimal comments' }
+        ]
+      },
+      {
+        id: 'team_design',
+        name: 'Design',
+        manager: 'Mia Chen',
+        headcount: 4,
+        health: 58,
+        trend: [72, 68, 64, 60, 58],
+        activeFlags: 3,
+        riskMembers: 1,
+        attrition: [
+          { role: 'Senior Designer', risk: 62, reason: 'Support score declining, workload increasing, 2 flags unresolved for 3+ weeks' }
+        ]
+      },
+      {
+        id: 'team_eng',
+        name: 'Engineering',
+        manager: 'Alex Chen',
+        headcount: 6,
+        health: engHealth,
+        trend: [68, 65, 62, 58, engHealth],
+        activeFlags: engFlags,
+        riskMembers: engAtRisk,
+        attrition: engAtRisk > 0 ? [
+          { role: 'Backend Engineer', risk: 78, reason: 'Workload at 1/5 for two weeks, wellbeing at 2/5, burnout signals' }
+        ] : []
+      },
+      {
+        id: 'team_sales',
+        name: 'Sales',
+        manager: 'Jordan Blake',
+        headcount: 8,
+        health: 79,
+        trend: [76, 78, 75, 77, 79],
+        activeFlags: 1,
+        riskMembers: 0,
+        attrition: []
+      },
+      {
+        id: 'team_data',
+        name: 'Data & Analytics',
+        manager: 'Kai Patel',
+        headcount: 4,
+        health: 82,
+        trend: [78, 80, 79, 81, 82],
+        activeFlags: 0,
+        riskMembers: 0,
+        attrition: []
+      },
+      {
+        id: 'team_product',
+        name: 'Product',
+        manager: 'Sam Nakamura',
+        headcount: 5,
+        health: 88,
+        trend: [82, 84, 85, 86, 88],
+        activeFlags: 0,
+        riskMembers: 0,
+        attrition: []
+      }
+    ].sort((a, b) => a.health - b.health); // Sort worst-first
+  }, [dashboardStats, flags, members, allSubmissions]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -443,7 +538,16 @@ function App() {
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
-      setView(data.user.role === 'manager' ? 'manager' : 'team_member');
+      
+      // Set view based on role
+      if (data.user.role === 'manager') {
+        setView('manager');
+      } else if (data.user.role === 'executive') {
+        setView('executive');
+      } else {
+        setView('team_member');
+      }
+      
       showToast(`Welcome back, ${data.user.name}!`);
     } catch (err) {
       setError(err.message);
@@ -706,6 +810,7 @@ RULES:
               </button>
               <div className="demo-credentials">
                 <p className="demo-title">Demo Accounts</p>
+                <p className="demo-item"><strong>Executive:</strong> rachel@performos.io / demo</p>
                 <p className="demo-item"><strong>Manager:</strong> alex@performos.io / demo</p>
                 <p className="demo-item"><strong>Team Member:</strong> sarah@performos.io / demo</p>
               </div>
@@ -1391,6 +1496,192 @@ RULES:
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+          </section>
+        </main>
+
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
+    );
+  }
+
+  // EXECUTIVE VIEW
+  if (view === 'executive') {
+    const totalAtRisk = orgTeams.reduce((sum, team) => sum + (team.riskMembers || 0), 0);
+    const totalFlags = orgTeams.reduce((sum, team) => sum + (team.activeFlags || 0), 0);
+    const allAttritionRisks = orgTeams.flatMap(t => 
+      (t.attrition || []).map(a => ({ ...a, team: t.name }))
+    ).sort((a, b) => b.risk - a.risk);
+
+    return (
+      <div className="app-shell">
+        <header className="app-header">
+          <div className="header-content">
+            <h1 className="header-title" data-testid="app-title">PerformOS</h1>
+            <div className="header-right">
+              <Avatar name={user.name} size={36} />
+              <div className="user-info">
+                <div className="user-name" data-testid="user-name">{user.name}</div>
+                <div className="user-role">{user.title || 'Executive'}</div>
+              </div>
+              <button className="btn-secondary btn-sm" onClick={handleLogout} data-testid="logout-button">Sign out</button>
+            </div>
+          </div>
+        </header>
+
+        <main className="main-content">
+          <section className="hero-section">
+            <h2 className="section-title" data-testid="exec-title">Organization Health</h2>
+            <p className="section-subtitle">Real-time team health monitoring and attrition risk tracking across all teams.</p>
+          </section>
+
+          <section className="content-section light">
+            <div className="content-container">
+              <div className="exec-summary-row">
+                <div className="exec-kpi">
+                  <div className="exec-kpi-value">{orgTeams.length}</div>
+                  <div className="exec-kpi-label">Teams</div>
+                </div>
+                <div className="exec-kpi">
+                  <div className="exec-kpi-value" style={{ color: totalFlags > 5 ? '#EF4444' : totalFlags > 0 ? '#F59E0B' : '#10B981' }}>
+                    {totalFlags}
+                  </div>
+                  <div className="exec-kpi-label">Active Flags</div>
+                </div>
+                <div className="exec-kpi">
+                  <div className="exec-kpi-value" style={{ color: totalAtRisk > 2 ? '#EF4444' : totalAtRisk > 0 ? '#F59E0B' : '#10B981' }}>
+                    {totalAtRisk}
+                  </div>
+                  <div className="exec-kpi-label">At Risk</div>
+                </div>
+                <div className="exec-kpi">
+                  <div className="exec-kpi-value">$600-800K</div>
+                  <div className="exec-kpi-label">Replacement Cost Exposure</div>
+                </div>
+              </div>
+
+              <h3 className="section-heading" style={{ marginTop: '3rem' }}>Organization Heatmap</h3>
+              <p className="section-description" style={{ marginBottom: '1.5rem' }}>
+                Teams sorted by health score (worst-first). Engineering uses live data from team submissions.
+              </p>
+
+              <div className="org-heatmap">
+                {orgTeams.map(team => {
+                  const healthColor = team.health >= 80 ? '#10B981' : team.health >= 60 ? '#06B6D4' : team.health >= 40 ? '#F59E0B' : '#EF4444';
+                  const trend5Weeks = team.trend || [];
+                  const trendDirection = trend5Weeks.length >= 2 ? 
+                    (trend5Weeks[trend5Weeks.length - 1] > trend5Weeks[0] ? 'up' : 
+                    trend5Weeks[trend5Weeks.length - 1] < trend5Weeks[0] ? 'down' : 'stable') : 'stable';
+                  
+                  return (
+                    <div key={team.id} className="heatmap-row" data-testid={`heatmap-${team.id}`}>
+                      <div className="heatmap-team">
+                        <div className="heatmap-team-name">{team.name}</div>
+                        <div className="heatmap-team-manager">{team.manager} · {team.headcount} people</div>
+                      </div>
+                      
+                      <div className="heatmap-health">
+                        <div 
+                          className="heatmap-health-score" 
+                          style={{ 
+                            background: healthColor,
+                            color: 'white',
+                            fontWeight: 700
+                          }}
+                        >
+                          {team.health}
+                        </div>
+                        <div className="heatmap-health-trend">
+                          {trendDirection === 'up' && <span style={{ color: '#10B981' }}>↗ improving</span>}
+                          {trendDirection === 'down' && <span style={{ color: '#EF4444' }}>↘ declining</span>}
+                          {trendDirection === 'stable' && <span style={{ color: '#64748B' }}>→ stable</span>}
+                        </div>
+                      </div>
+
+                      <div className="heatmap-metrics">
+                        <div className="heatmap-metric">
+                          <span className="heatmap-metric-value" style={{ color: team.activeFlags > 2 ? '#EF4444' : team.activeFlags > 0 ? '#F59E0B' : '#64748B' }}>
+                            {team.activeFlags || 0}
+                          </span>
+                          <span className="heatmap-metric-label">flags</span>
+                        </div>
+                        <div className="heatmap-metric">
+                          <span className="heatmap-metric-value" style={{ color: team.riskMembers > 0 ? '#EF4444' : '#64748B' }}>
+                            {team.riskMembers || 0}
+                          </span>
+                          <span className="heatmap-metric-label">at risk</span>
+                        </div>
+                      </div>
+
+                      <div className="heatmap-mini-trend">
+                        {trend5Weeks.map((val, i) => (
+                          <div 
+                            key={i}
+                            className="heatmap-bar"
+                            style={{
+                              height: `${(val / 100) * 36}px`,
+                              background: val >= 80 ? '#10B981' : val >= 60 ? '#06B6D4' : val >= 40 ? '#F59E0B' : '#EF4444',
+                              opacity: i === trend5Weeks.length - 1 ? 1 : 0.6
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {allAttritionRisks.length > 0 && (
+                <>
+                  <h3 className="section-heading" style={{ marginTop: '3rem' }}>Attrition Risks</h3>
+                  <p className="section-description" style={{ marginBottom: '1.5rem' }}>
+                    Team members showing elevated flight risk based on wellbeing scores, flag patterns, and engagement trends. 
+                    Role titles shown for privacy.
+                  </p>
+
+                  <div className="attrition-list">
+                    {allAttritionRisks.map((risk, i) => {
+                      const riskLevel = risk.risk >= 70 ? 'critical' : risk.risk >= 50 ? 'high' : 'moderate';
+                      const riskColor = riskLevel === 'critical' ? '#EF4444' : riskLevel === 'high' ? '#F59E0B' : '#F59E0B';
+                      
+                      return (
+                        <div key={i} className="attrition-card" data-testid={`attrition-${i}`}>
+                          <div className="attrition-header">
+                            <div className="attrition-role">
+                              <div className="attrition-role-title">{risk.role}</div>
+                              <div className="attrition-role-team">{risk.team}</div>
+                            </div>
+                            <div 
+                              className="attrition-risk-score"
+                              style={{
+                                background: `rgba(${riskLevel === 'critical' ? '239, 68, 68' : '245, 158, 11'}, 0.1)`,
+                                color: riskColor,
+                                border: `2px solid ${riskColor}`
+                              }}
+                            >
+                              {risk.risk}% flight risk
+                            </div>
+                          </div>
+                          <div className="attrition-reason">{risk.reason}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="replacement-cost-banner">
+                    <div className="replacement-cost-icon">⚠️</div>
+                    <div className="replacement-cost-content">
+                      <div className="replacement-cost-title">Replacement Cost Exposure</div>
+                      <div className="replacement-cost-text">
+                        {totalAtRisk} team members across {orgTeams.filter(t => t.riskMembers > 0).length} teams show elevated flight risk.
+                      </div>
+                      <div className="replacement-cost-amount">
+                        Estimated replacement cost: <strong>$600,000 – $800,000</strong>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </section>

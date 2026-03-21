@@ -370,6 +370,8 @@ function App() {
   const [allSubmissions, setAllSubmissions] = useState([]);
   const [historyMember, setHistoryMember] = useState(null);
   const [viewedSubmission, setViewedSubmission] = useState(null);
+  const [briefing, setBriefing] = useState(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -531,6 +533,129 @@ function App() {
     if (avgWellbeing >= 4) return 'good';
     if (avgWellbeing >= 3) return 'caution';
     return 'risk';
+  };
+
+  const generateBriefing = async () => {
+    setBriefingLoading(true);
+    try {
+      // Build team data summary
+      const teamData = members.map(member => {
+        const memberSubs = allSubmissions.filter(s => s.member_id === member._id).sort((a, b) => a.date.localeCompare(b.date));
+        const memberFlags = flags.filter(f => f.member_id === member._id && f.status === 'open');
+        
+        if (memberSubs.length === 0) return null;
+        
+        const latest = memberSubs[memberSubs.length - 1];
+        const wellbeingMetrics = ['feeling_about_work', 'safe_to_raise_concerns', 'feel_supported', 'workload_manageable', 'target_confidence'];
+        
+        const scores = {};
+        const trends = {};
+        wellbeingMetrics.forEach(metric => {
+          const values = memberSubs.map(s => s.responses?.[metric]?.rating).filter(Boolean);
+          if (values.length > 0) {
+            scores[metric] = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+            if (values.length >= 2) {
+              const delta = values[values.length - 1] - values[0];
+              trends[metric] = delta > 0 ? 'improving' : delta < 0 ? 'declining' : 'stable';
+            }
+          }
+        });
+        
+        const healthScore = (Object.values(scores).reduce((a, b) => a + parseFloat(b), 0) / Object.keys(scores).length / 5) * 100;
+        
+        return {
+          name: member.name,
+          title: member.title,
+          healthScore: Math.round(healthScore),
+          scores,
+          trends,
+          flags: memberFlags.map(f => ({ severity: f.severity, signal: f.signal, category: f.category })),
+          latestComment: latest.responses?.feeling_about_work?.comment || latest.responses?.workload_manageable?.comment || ''
+        };
+      }).filter(Boolean);
+
+      const teamHealthScore = dashboardStats?.team_health_score || 0;
+      const activeFlags = flags.filter(f => f.status === 'open').length;
+
+      // Build prompt
+      const prompt = `You are an expert leadership coach and team health advisor. Based on the team data below, generate a structured daily briefing for the manager to use this week.
+
+TEAM DATA:
+${teamData.map(m => `
+- ${m.name}, ${m.title}
+- Health score: ${m.healthScore}/100
+- Scores (avg): feeling=${m.scores.feeling_about_work || 'N/A'}, safety=${m.scores.safe_to_raise_concerns || 'N/A'}, support=${m.scores.feel_supported || 'N/A'}, workload=${m.scores.workload_manageable || 'N/A'}, confidence=${m.scores.target_confidence || 'N/A'}
+- Trends: ${Object.entries(m.trends).map(([k, v]) => `${k}:${v}`).join(', ')}
+- Active flags: ${m.flags.length > 0 ? m.flags.map(f => `${f.severity} - ${f.signal}`).join('; ') : 'None'}
+- Latest comment: "${m.latestComment}"
+`).join('\n')}
+
+TEAM HEALTH SCORE: ${teamHealthScore}/100
+ACTIVE FLAGS: ${activeFlags}
+
+Generate a JSON response with NO markdown, NO backticks, just raw JSON:
+{
+  "team_pulse": "2-3 sentence summary of overall team state — be specific, reference people and scores",
+  "priority_actions": [
+    {"person": "Name", "action": "Specific action", "urgency": "today|this_week|next_1on1", "reason": "Why"}
+  ],
+  "daily_briefing": {
+    "opening": "Suggested 2-sentence opening for daily standup that acknowledges wins and sets supportive tone",
+    "watch_items": ["Specific thing to observe today"],
+    "conversation_starters": [
+      {"person": "Name", "starter": "Natural, human way to check in — not clinical"}
+    ]
+  },
+  "wellbeing_activities": [
+    {"activity": "Specific team activity", "target": "What risk it addresses", "duration": "Time estimate"}
+  ],
+  "recognition": [
+    {"person": "Name", "what": "Specific achievement to recognise"}
+  ],
+  "risks_to_watch": [
+    {"person": "Name", "risk": "What could go wrong without action", "timeframe": "How urgent"}
+  ]
+}
+
+RULES:
+- Be specific. Reference actual scores and comments.
+- Priority actions ordered by urgency (today first). Max 4.
+- Conversation starters must feel human. NOT "I noticed your score dropped". More like "How did the on-call go? I've been thinking about it."
+- Wellbeing activities should be practical, not corporate fluff. Max 3.
+- Recognition highlights genuine contributions. Max 3.
+- If someone is doing well, say so.`;
+
+      // Call OpenAI API (using provided key)
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer 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'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4-turbo-preview',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 2000,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate briefing');
+      }
+
+      const data = await response.json();
+      const briefingText = data.choices[0].message.content;
+      
+      // Parse JSON response
+      const briefingData = JSON.parse(briefingText.replace(/```json\n?|\n?```/g, '').trim());
+      setBriefing(briefingData);
+    } catch (err) {
+      console.error('Error generating briefing:', err);
+      showToast('Failed to generate briefing. Please try again.', 'error');
+    } finally {
+      setBriefingLoading(false);
+    }
   };
 
   // LOGIN VIEW
@@ -841,6 +966,13 @@ function App() {
                 >
                   Performance Trends
                 </button>
+                <button
+                  className={`tab ${managerTab === 'ai_briefing' ? 'active' : ''}`}
+                  onClick={() => setManagerTab('ai_briefing')}
+                  data-testid="tab-ai-briefing"
+                >
+                  AI Briefing
+                </button>
               </div>
 
               {managerTab === 'schedule' && !historyMember && !viewedSubmission && (
@@ -1111,6 +1243,153 @@ function App() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {managerTab === 'ai_briefing' && (
+                <div className="tab-content" data-testid="ai-briefing-content">
+                  {!briefing && !briefingLoading && (
+                    <div className="briefing-empty">
+                      <div className="briefing-empty-icon">✦</div>
+                      <h3 className="briefing-empty-title">AI Manager Briefing</h3>
+                      <p className="briefing-empty-desc">
+                        Generate a personalised briefing based on your team's health scores, risk flags, and recent submissions. 
+                        Includes priority actions, conversation starters, and wellbeing activities.
+                      </p>
+                      <button 
+                        className="btn-primary btn-large"
+                        onClick={generateBriefing}
+                        data-testid="generate-briefing-button"
+                      >
+                        Generate This Week's Briefing
+                      </button>
+                    </div>
+                  )}
+
+                  {briefingLoading && (
+                    <div className="briefing-loading">
+                      <div className="briefing-loading-icon">✦</div>
+                      <div className="briefing-loading-text">Analysing team data and generating your briefing...</div>
+                      <div className="briefing-loading-subtext">
+                        Reading {allSubmissions.length} submissions, {flags.filter(f => f.status === 'open').length} active flags
+                      </div>
+                    </div>
+                  )}
+
+                  {briefing && !briefingLoading && (
+                    <div className="briefing-content">
+                      <div className="briefing-card pulse-card">
+                        <div className="briefing-card-header">
+                          <span className="briefing-icon">✦</span>
+                          <h3>Team Pulse — This Week</h3>
+                        </div>
+                        <p className="pulse-text">{briefing.team_pulse}</p>
+                      </div>
+
+                      <div className="briefing-card">
+                        <h3 className="briefing-card-title">Priority Actions</h3>
+                        <div className="actions-list">
+                          {briefing.priority_actions?.map((action, i) => (
+                            <div key={i} className="action-item">
+                              <span className={`urgency-badge urgency-${action.urgency}`}>
+                                {action.urgency === 'today' ? 'TODAY' : action.urgency === 'this_week' ? 'THIS WEEK' : 'NEXT 1:1'}
+                              </span>
+                              <div className="action-content">
+                                <div className="action-main">
+                                  <strong>{action.person}:</strong> {action.action}
+                                </div>
+                                <div className="action-reason">{action.reason}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="briefing-card">
+                        <h3 className="briefing-card-title">Daily Briefing Guide</h3>
+                        
+                        <div className="briefing-subsection">
+                          <h4>Suggested Opening</h4>
+                          <div className="opening-quote">"{briefing.daily_briefing?.opening}"</div>
+                        </div>
+
+                        <div className="briefing-subsection">
+                          <h4>Things to Watch Today</h4>
+                          <ul className="watch-list">
+                            {briefing.daily_briefing?.watch_items?.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="briefing-subsection">
+                          <h4>Conversation Starters</h4>
+                          <div className="starters-list">
+                            {briefing.daily_briefing?.conversation_starters?.map((starter, i) => (
+                              <div key={i} className="starter-item">
+                                <strong>{starter.person}:</strong> "{starter.starter}"
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="briefing-two-col">
+                        <div className="briefing-card">
+                          <h3 className="briefing-card-title">Wellbeing Activities</h3>
+                          <div className="activities-list">
+                            {briefing.wellbeing_activities?.map((activity, i) => (
+                              <div key={i} className="activity-item">
+                                <div className="activity-name">{activity.activity}</div>
+                                <div className="activity-meta">
+                                  <span className="activity-target">{activity.target}</span>
+                                  <span className="activity-duration">{activity.duration}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="briefing-card">
+                          <h3 className="briefing-card-title">Recognition</h3>
+                          <div className="recognition-list">
+                            {briefing.recognition?.map((rec, i) => (
+                              <div key={i} className="recognition-item">
+                                <div className="recognition-person">{rec.person}</div>
+                                <div className="recognition-what">{rec.what}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="briefing-card risks-card">
+                        <div className="briefing-card-header">
+                          <span className="briefing-icon">⚑</span>
+                          <h3>Risks If No Action Taken</h3>
+                        </div>
+                        <div className="risks-list">
+                          {briefing.risks_to_watch?.map((risk, i) => (
+                            <div key={i} className="risk-item">
+                              <div className="risk-person">{risk.person}</div>
+                              <div className="risk-text">{risk.risk}</div>
+                              <div className="risk-timeframe">{risk.timeframe}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="briefing-actions">
+                        <button 
+                          className="btn-secondary"
+                          onClick={() => { setBriefing(null); generateBriefing(); }}
+                          data-testid="regenerate-briefing-button"
+                        >
+                          Regenerate Briefing
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -22,21 +22,21 @@ def mk(r, c):
 
 SEED_DATA = {
     "users": [
-        {"_id": "manager_001", "name": "Alex Chen", "email": "alex@performos.io", "hashed_password": None, "role": "manager", "title": "Engineering Manager", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_001", "name": "Sarah Mitchell", "email": "sarah@performos.io", "hashed_password": None, "role": "team_member", "title": "Senior Frontend Engineer", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_002", "name": "James Rodriguez", "email": "james@performos.io", "hashed_password": None, "role": "team_member", "title": "Backend Engineer", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_003", "name": "Priya Sharma", "email": "priya@performos.io", "hashed_password": None, "role": "team_member", "title": "Full Stack Engineer", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_004", "name": "Marcus Thompson", "email": "marcus@performos.io", "hashed_password": None, "role": "team_member", "title": "DevOps Engineer", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_005", "name": "Emily Nakamura", "email": "emily@performos.io", "hashed_password": None, "role": "team_member", "title": "Junior Engineer", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_006", "name": "David O'Brien", "email": "david@performos.io", "hashed_password": None, "role": "team_member", "title": "QA Engineer", "created_at": datetime(2026, 1, 1)}
+        {"_id": "manager_001", "name": "Alex Chen", "email": "alex@performos.io", "hashed_password": None, "role": "manager", "title": "Area Manager", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_001", "name": "Sarah Mitchell", "email": "sarah@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_002", "name": "James Rodriguez", "email": "james@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_003", "name": "Priya Sharma", "email": "priya@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_004", "name": "Marcus Thompson", "email": "marcus@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_005", "name": "Emily Nakamura", "email": "emily@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_006", "name": "David O'Brien", "email": "david@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)}
     ],
     "members": [
-        {"_id": "member_001", "user_id": "user_001", "name": "Sarah Mitchell", "email": "sarah@performos.io", "title": "Senior Frontend Engineer", "manager_id": "manager_001"},
-        {"_id": "member_002", "user_id": "user_002", "name": "James Rodriguez", "email": "james@performos.io", "title": "Backend Engineer", "manager_id": "manager_001"},
-        {"_id": "member_003", "user_id": "user_003", "name": "Priya Sharma", "email": "priya@performos.io", "title": "Full Stack Engineer", "manager_id": "manager_001"},
-        {"_id": "member_004", "user_id": "user_004", "name": "Marcus Thompson", "email": "marcus@performos.io", "title": "DevOps Engineer", "manager_id": "manager_001"},
-        {"_id": "member_005", "user_id": "user_005", "name": "Emily Nakamura", "email": "emily@performos.io", "title": "Junior Engineer", "manager_id": "manager_001"},
-        {"_id": "member_006", "user_id": "user_006", "name": "David O'Brien", "email": "david@performos.io", "title": "QA Engineer", "manager_id": "manager_001"}
+        {"_id": "member_001", "user_id": "user_001", "name": "Sarah Mitchell", "email": "sarah@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
+        {"_id": "member_002", "user_id": "user_002", "name": "James Rodriguez", "email": "james@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
+        {"_id": "member_003", "user_id": "user_003", "name": "Priya Sharma", "email": "priya@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
+        {"_id": "member_004", "user_id": "user_004", "name": "Marcus Thompson", "email": "marcus@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
+        {"_id": "member_005", "user_id": "user_005", "name": "Emily Nakamura", "email": "emily@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
+        {"_id": "member_006", "user_id": "user_006", "name": "David O'Brien", "email": "david@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"}
     ],
     "submissions": [
         # SARAH - Week 1

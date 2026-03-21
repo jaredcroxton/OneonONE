@@ -900,11 +900,41 @@ function App() {
                           <div className="performance-metrics">
                             <div className="metric-row">
                               <span className="metric-label">Target Confidence</span>
-                              <Sparkline data={calculateTrends(memberSubmissions, 'target_confidence')} />
+                              {(() => {
+                                const conf = calculateTrends(memberSubmissions, 'target_confidence');
+                                return conf.length > 0 ? (
+                                  <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: 20, width: conf.length * 12 }}>
+                                    {conf.map((v, i) => (
+                                      <div key={i} style={{ 
+                                        flex: 1, 
+                                        borderRadius: "2px 2px 0 0", 
+                                        height: `${(v / 5) * 100}%`, 
+                                        background: v >= 4 ? "#10B981" : v >= 2 ? "#F59E0B" : "#EF4444",
+                                        opacity: i === conf.length - 1 ? 1 : 0.6 
+                                      }} />
+                                    ))}
+                                  </div>
+                                ) : <span className="sparkline-empty">—</span>;
+                              })()}
                             </div>
                             <div className="metric-row">
                               <span className="metric-label">Wellbeing</span>
-                              <Sparkline data={calculateTrends(memberSubmissions, 'feeling_about_work')} />
+                              {(() => {
+                                const wellbeing = calculateTrends(memberSubmissions, 'feeling_about_work');
+                                return wellbeing.length > 0 ? (
+                                  <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: 20, width: wellbeing.length * 12 }}>
+                                    {wellbeing.map((v, i) => (
+                                      <div key={i} style={{ 
+                                        flex: 1, 
+                                        borderRadius: "2px 2px 0 0", 
+                                        height: `${(v / 5) * 100}%`, 
+                                        background: v >= 4 ? "#10B981" : v >= 2 ? "#F59E0B" : "#EF4444",
+                                        opacity: i === wellbeing.length - 1 ? 1 : 0.6 
+                                      }} />
+                                    ))}
+                                  </div>
+                                ) : <span className="sparkline-empty">—</span>;
+                              })()}
                             </div>
                           </div>
                         </div>

@@ -702,10 +702,30 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-on-dark);
 }
 
+.trend-score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
 .trend-score {
   font-size: 1.75rem;
   font-weight: 700;
   font-family: var(--font-display);
+  line-height: 1;
+}
+
+.trend-score-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-on-dark-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.trend-card-v4.light .trend-score-label {
+  color: var(--text-on-light-muted);
 }
 
 .trend-subtitle {
@@ -917,9 +937,29 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .rating-btn.selected {
-  border-color: var(--accent-teal);
-  background: var(--accent-teal);
+  border-color: transparent;
   color: white;
+  font-weight: 700;
+}
+
+.rating-btn.selected:nth-child(1) {
+  background: #EF4444;  /* Red for 1 */
+}
+
+.rating-btn.selected:nth-child(2) {
+  background: #F59E0B;  /* Amber for 2 */
+}
+
+.rating-btn.selected:nth-child(3) {
+  background: #F59E0B;  /* Amber for 3 */
+}
+
+.rating-btn.selected:nth-child(4) {
+  background: #10B981;  /* Green for 4 */
+}
+
+.rating-btn.selected:nth-child(5) {
+  background: #10B981;  /* Green for 5 */
 }
 
 .rating-btn:disabled {

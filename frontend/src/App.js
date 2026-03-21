@@ -11,9 +11,9 @@ const getAvatarColor = (name) => {
 };
 
 const getScoreColor = (rating) => {
-  if (rating >= 4) return '#22C55E';
-  if (rating === 3) return '#14B8A6';
-  return '#F59E0B';
+  if (rating >= 4) return '#10B981';  // Green for 4-5
+  if (rating >= 2) return '#F59E0B';  // Amber for 2-3
+  return '#EF4444';                    // Red for 1
 };
 
 const formatDate = (dateStr) => {
@@ -144,21 +144,23 @@ function TrendCard({ metricKey, submissions, dark, compact }) {
   const data = submissions
     .map(s => ({ rating: s.responses?.[metricKey]?.rating, date: s.date }))
     .filter(d => d.rating != null)
-    .sort((a, b) => a.date.localeCompare(b.date)); // Sort chronologically
+    .sort((a, b) => a.date.localeCompare(b.date));
   
   if (data.length === 0) return null;
 
+  // Calculate AVERAGE rating instead of latest
+  const avg = data.reduce((sum, d) => sum + d.rating, 0) / data.length;
   const latest = data[data.length - 1].rating;
   const first = data[0].rating;
   const delta = data.length >= 2 ? latest - first : 0;
-  const col = getScoreColor(latest);
+  const col = getScoreColor(avg);
 
   const deltaText = delta > 0 
     ? `▲ ${Math.abs(delta).toFixed(1)} improving` 
     : delta < 0 
     ? `▼ ${Math.abs(delta).toFixed(1)} declining` 
     : data.length >= 2 ? "— Stable" : "";
-  const deltaCol = delta > 0 ? "#22C55E" : delta < 0 ? "#F87171" : "var(--text-on-dark-muted)";
+  const deltaCol = delta > 0 ? "#10B981" : delta < 0 ? "#EF4444" : "var(--text-on-dark-muted)";
 
   const barHeight = compact ? 32 : 48;
 
@@ -167,7 +169,10 @@ function TrendCard({ metricKey, submissions, dark, compact }) {
       <div className="trend-header">
         <div className="trend-label-row">
           <div className="trend-label">{label}</div>
-          <div className="trend-score" style={{ color: col }}>{latest}/5</div>
+          <div className="trend-score-col">
+            <div className="trend-score" style={{ color: col }}>{avg.toFixed(1)}/5</div>
+            <div className="trend-score-label">avg</div>
+          </div>
         </div>
         {!compact && subtitle && <div className="trend-subtitle">{subtitle}</div>}
         {deltaText && (

@@ -7,23 +7,23 @@ from jose import JWTError, jwt
 import os
 from dotenv import load_dotenv
 
-from database import init_db, users_collection, members_collection, sessions_collection, flags_collection
+from database import init_db, users_collection, members_collection, submissions_collection, flags_collection
 from models import (
-    User, UserLogin, Token, TeamMember, Session, SessionCreate, Flag, FlagCreate,
-    PreMeetingReflection, ManagerNotes, Action,
-    RiskAnalysisRequest, ConversationStartersRequest, SessionSummaryRequest
+    User, UserLogin, Token, TeamMember,
+    Submission, SubmissionCreate, WeeklyReflection, ResponseItem,
+    Flag
 )
-from auth import authenticate_user, create_access_token, get_password_hash
-from ai_service import analyze_risk, generate_conversation_starters, generate_session_summary
-from flag_detection import detect_flags_for_session, check_manager_gap_flags
-from seed_data import seed_database
+from auth import authenticate_user, create_access_token
+from flag_detection import detect_flags_for_submission, check_missing_submissions
+from seed_data import seed_database, generate_mondays, MONDAY_DATES
 
 load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "performos_jwt_secret_key")
 ALGORITHM = "HS256"
+CURRENT_WEEK = "2026-03-23"  # The "THIS WEEK" for demo purposes
 
-app = FastAPI(title="PerformOS One-on-One Builder API")
+app = FastAPI(title="PerformOS One-on-One Builder V2 API")
 
 # CORS middleware
 app.add_middleware(
@@ -88,7 +88,7 @@ async def startup_event():
 
 @app.get("/")
 async def root():
-    return {"message": "PerformOS One-on-One Builder API", "status": "running"}
+    return {"message": "PerformOS One-on-One Builder V2 API", "status": "running", "current_week": CURRENT_WEEK}
 
 
 # ============================================================
@@ -131,165 +131,108 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 async def get_members(current_user: dict = Depends(get_current_user)):
     """Get team members for current user"""
     if current_user["role"] == "manager":
-        # Get all team members managed by this manager
         members_cursor = members_collection.find({"manager_id": current_user["_id"]})
         members = await members_cursor.to_list(length=1000)
         return serialize_doc(members)
     else:
-        # Team member can only see their own record
         member = await members_collection.find_one({"user_id": current_user["_id"]})
         return serialize_doc([member] if member else [])
 
 
-@app.get("/api/members/{member_id}")
-async def get_member(member_id: str, current_user: dict = Depends(get_current_user)):
-    """Get specific team member"""
-    member = await members_collection.find_one({"_id": member_id})
+# ============================================================
+# WEEKLY SCHEDULE ROUTES
+# ============================================================
+
+@app.get("/api/schedule/weeks")
+async def get_weekly_schedule():
+    """Get all Monday dates for the schedule (March 23 - June 29, 2026)"""
+    return {
+        "weeks": MONDAY_DATES,
+        "current_week": CURRENT_WEEK
+    }
+
+
+@app.get("/api/schedule/status")
+async def get_schedule_status(current_user: dict = Depends(get_current_user)):
+    """Get submission status for all weeks for the current team member"""
+    # Get member record
+    member = await members_collection.find_one({"user_id": current_user["_id"]})
     if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
+        raise HTTPException(status_code=404, detail="Member record not found")
     
-    # Check permissions
-    if current_user["role"] == "manager" and member["manager_id"] != current_user["_id"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    elif current_user["role"] == "team_member" and member["user_id"] != current_user["_id"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # Get all submissions for this member
+    submissions_cursor = submissions_collection.find({"member_id": member["_id"]})
+    submissions = await submissions_cursor.to_list(length=1000)
+    submission_dates = {sub["date"]: sub["_id"] for sub in submissions}
     
-    return serialize_doc(member)
+    # Build status for each week
+    schedule_status = []
+    for date in MONDAY_DATES:
+        schedule_status.append({
+            "date": date,
+            "submitted": date in submission_dates,
+            "submission_id": submission_dates.get(date),
+            "is_current_week": date == CURRENT_WEEK
+        })
+    
+    return schedule_status
 
 
 # ============================================================
-# SESSIONS ROUTES
+# SUBMISSIONS ROUTES
 # ============================================================
 
-@app.get("/api/sessions")
-async def get_sessions(member_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    """Get sessions"""
+@app.get("/api/submissions")
+async def get_submissions(date: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """Get submissions - managers see all their team's, members see their own"""
     query = {}
     
     if current_user["role"] == "manager":
-        query["manager_id"] = current_user["_id"]
-        if member_id:
-            query["member_id"] = member_id
+        # Get all team members
+        members_cursor = members_collection.find({"manager_id": current_user["_id"]})
+        members = await members_cursor.to_list(length=1000)
+        member_ids = [m["_id"] for m in members]
+        query["member_id"] = {"$in": member_ids}
     else:
-        # Team member can only see their own sessions
+        # Team member sees only their own
         member = await members_collection.find_one({"user_id": current_user["_id"]})
         if member:
             query["member_id"] = member["_id"]
         else:
             return []
     
-    sessions_cursor = sessions_collection.find(query).sort("date", -1)
-    sessions = await sessions_cursor.to_list(length=1000)
-    return serialize_doc(sessions)
+    if date:
+        query["date"] = date
+    
+    submissions_cursor = submissions_collection.find(query).sort("date", -1)
+    submissions = await submissions_cursor.to_list(length=1000)
+    return serialize_doc(submissions)
 
 
-@app.get("/api/sessions/{session_id}")
-async def get_session(session_id: str, current_user: dict = Depends(get_current_user)):
-    """Get specific session"""
-    session = await sessions_collection.find_one({"_id": session_id})
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+@app.get("/api/submissions/{submission_id}")
+async def get_submission(submission_id: str, current_user: dict = Depends(get_current_user)):
+    """Get specific submission"""
+    submission = await submissions_collection.find_one({"_id": submission_id})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
     
     # Check permissions
-    if current_user["role"] == "manager" and session["manager_id"] != current_user["_id"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    elif current_user["role"] == "team_member":
+    if current_user["role"] == "manager":
+        member = await members_collection.find_one({"_id": submission["member_id"]})
+        if not member or member["manager_id"] != current_user["_id"]:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    else:
         member = await members_collection.find_one({"user_id": current_user["_id"]})
-        if not member or session["member_id"] != member["_id"]:
+        if not member or submission["member_id"] != member["_id"]:
             raise HTTPException(status_code=403, detail="Not authorized")
     
-    return serialize_doc(session)
+    return serialize_doc(submission)
 
 
-@app.post("/api/sessions")
-async def create_session(session_data: SessionCreate, current_user: dict = Depends(get_current_user)):
-    """Create or update a session"""
-    # Only managers can create sessions
-    if current_user["role"] != "manager":
-        raise HTTPException(status_code=403, detail="Only managers can create sessions")
-    
-    session_dict = session_data.model_dump()
-    session_dict["created_at"] = datetime.utcnow()
-    
-    # If session has a pre_meeting reflection and manager_notes, it's complete - detect flags
-    if session_dict.get("pre_meeting") and session_dict.get("manager_notes") and session_dict.get("status") == "completed":
-        # Get member info
-        member = await members_collection.find_one({"_id": session_dict["member_id"]})
-        if member:
-            # Get previous sessions for this member
-            prev_sessions_cursor = sessions_collection.find({
-                "member_id": session_dict["member_id"],
-                "status": "completed"
-            }).sort("date", -1).limit(5)
-            prev_sessions_raw = await prev_sessions_cursor.to_list(length=5)
-            prev_sessions = [serialize_doc(s) for s in prev_sessions_raw]
-            
-            # Create a temporary session object for flag detection
-            from models import Session as SessionModel, PreMeetingReflection as PreMeetingModel
-            temp_session = SessionModel(
-                _id="temp",
-                manager_id=session_dict["manager_id"],
-                member_id=session_dict["member_id"],
-                date=session_dict["date"],
-                status=session_dict["status"],
-                pre_meeting=PreMeetingModel(**session_dict["pre_meeting"]) if session_dict.get("pre_meeting") else None,
-                manager_notes=session_dict.get("manager_notes"),
-                actions=session_dict.get("actions", []),
-                follow_ups=session_dict.get("follow_ups", [])
-            )
-            
-            # Convert prev sessions to Session objects
-            prev_session_objs = []
-            for ps in prev_sessions:
-                if ps.get("pre_meeting"):
-                    try:
-                        prev_session_objs.append(SessionModel(
-                            _id=ps["_id"],
-                            manager_id=ps["manager_id"],
-                            member_id=ps["member_id"],
-                            date=ps["date"],
-                            status=ps["status"],
-                            pre_meeting=PreMeetingModel(**ps["pre_meeting"]) if ps.get("pre_meeting") else None
-                        ))
-                    except Exception as e:
-                        print(f"Warning: Could not parse previous session {ps['_id']}: {e}")
-            
-            # Detect flags
-            try:
-                detected_flags = await detect_flags_for_session(
-                    temp_session,
-                    prev_session_objs,
-                    member["name"],
-                    member["title"]
-                )
-                
-                # Insert detected flags
-                flag_ids = []
-                for flag_data in detected_flags:
-                    flag_data["created_at"] = datetime.utcnow().strftime("%Y-%m-%d")
-                    result = await flags_collection.insert_one(flag_data)
-                    flag_ids.append(str(result.inserted_id))
-                
-                session_dict["flags_detected"] = flag_ids
-            except Exception as e:
-                print(f"Warning: Flag detection failed: {e}")
-                session_dict["flags_detected"] = []
-            
-            # Update member's last session date
-            await members_collection.update_one(
-                {"_id": session_dict["member_id"]},
-                {"$set": {"last_session": session_dict["date"]}}
-            )
-    
-    result = await sessions_collection.insert_one(session_dict)
-    session_dict["_id"] = str(result.inserted_id)
-    return serialize_doc(session_dict)
-
-
-@app.post("/api/sessions/{session_id}/reflection")
-async def submit_reflection(session_id: str, reflection: PreMeetingReflection, current_user: dict = Depends(get_current_user)):
-    """Submit pre-meeting reflection for a session"""
-    # Only team members can submit reflections
+@app.post("/api/submissions")
+async def create_submission(submission_data: SubmissionCreate, current_user: dict = Depends(get_current_user)):
+    """Submit weekly reflection"""
+    # Only team members can submit
     if current_user["role"] != "team_member":
         raise HTTPException(status_code=403, detail="Only team members can submit reflections")
     
@@ -298,21 +241,86 @@ async def submit_reflection(session_id: str, reflection: PreMeetingReflection, c
     if not member:
         raise HTTPException(status_code=404, detail="Member record not found")
     
-    session = await sessions_collection.find_one({"_id": session_id})
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    # Check if submission already exists for this date
+    existing = await submissions_collection.find_one({
+        "member_id": member["_id"],
+        "date": submission_data.date
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Submission already exists for this week")
     
-    if session["member_id"] != member["_id"]:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # Create submission
+    submission_dict = submission_data.model_dump()
+    submission_dict["member_id"] = member["_id"]
+    submission_dict["submitted_at"] = datetime.utcnow().isoformat()
     
-    # Update session with pre_meeting data
-    await sessions_collection.update_one(
-        {"_id": session_id},
-        {"$set": {"pre_meeting": reflection.model_dump()}}
+    result = await submissions_collection.insert_one(submission_dict)
+    submission_id = str(result.inserted_id)
+    
+    # Detect flags
+    flags = await detect_flags_for_submission(
+        submission_id=submission_id,
+        member_id=member["_id"],
+        member_name=member["name"],
+        date=submission_data.date,
+        responses=submission_data.responses.model_dump()
     )
     
-    updated_session = await sessions_collection.find_one({"_id": session_id})
-    return serialize_doc(updated_session)
+    # Insert flags
+    flag_ids = []
+    for flag_data in flags:
+        flag_result = await flags_collection.insert_one(flag_data)
+        flag_ids.append(str(flag_result.inserted_id))
+    
+    # Update submission with flag IDs
+    await submissions_collection.update_one(
+        {"_id": submission_id},
+        {"$set": {"flags_detected": flag_ids}}
+    )
+    
+    submission_dict["_id"] = submission_id
+    submission_dict["flags_detected"] = flag_ids
+    
+    return serialize_doc(submission_dict)
+
+
+# ============================================================
+# THIS WEEK SUBMISSIONS (Manager View)
+# ============================================================
+
+@app.get("/api/this-week/submissions")
+async def get_this_week_submissions(current_user: dict = Depends(get_current_user)):
+    """Get all submissions for THIS WEEK for manager's team"""
+    if current_user["role"] != "manager":
+        raise HTTPException(status_code=403, detail="Only managers can view this")
+    
+    # Get all team members
+    members_cursor = members_collection.find({"manager_id": current_user["_id"]})
+    members = await members_cursor.to_list(length=1000)
+    member_map = {m["_id"]: m for m in members}
+    member_ids = list(member_map.keys())
+    
+    # Get submissions for current week
+    submissions_cursor = submissions_collection.find({
+        "member_id": {"$in": member_ids},
+        "date": CURRENT_WEEK
+    })
+    submissions = await submissions_cursor.to_list(length=1000)
+    
+    # Build result with member info
+    result = []
+    for member_id, member in member_map.items():
+        submission = next((s for s in submissions if s["member_id"] == member_id), None)
+        result.append({
+            "member": serialize_doc(member),
+            "submission": serialize_doc(submission) if submission else None,
+            "has_submitted": submission is not None
+        })
+    
+    # Check for missing submissions and create manager gap flags
+    await check_missing_submissions(current_user["_id"], CURRENT_WEEK)
+    
+    return result
 
 
 # ============================================================
@@ -320,19 +328,16 @@ async def submit_reflection(session_id: str, reflection: PreMeetingReflection, c
 # ============================================================
 
 @app.get("/api/flags")
-async def get_flags(status_filter: Optional[str] = "open", member_id: Optional[str] = None, 
-                   current_user: dict = Depends(get_current_user)):
+async def get_flags(status_filter: Optional[str] = "open", current_user: dict = Depends(get_current_user)):
     """Get flags"""
     query = {}
     
     if current_user["role"] == "manager":
-        # Get flags for all their team members
         members_cursor = members_collection.find({"manager_id": current_user["_id"]})
         members = await members_cursor.to_list(length=1000)
         member_ids = [m["_id"] for m in members]
         query["member_id"] = {"$in": member_ids}
     else:
-        # Team member can only see their own flags
         member = await members_collection.find_one({"user_id": current_user["_id"]})
         if member:
             query["member_id"] = member["_id"]
@@ -341,19 +346,15 @@ async def get_flags(status_filter: Optional[str] = "open", member_id: Optional[s
     
     if status_filter:
         query["status"] = status_filter
-    if member_id:
-        query["member_id"] = member_id
     
-    flags_cursor = flags_collection.find(query).sort("created_at", -1)
+    flags_cursor = flags_collection.find(query).sort("date", -1)
     flags = await flags_cursor.to_list(length=1000)
     return serialize_doc(flags)
 
 
 @app.patch("/api/flags/{flag_id}")
-async def update_flag(flag_id: str, status_update: str, note: Optional[str] = None,
-                     current_user: dict = Depends(get_current_user)):
-    """Update flag status (acknowledge/resolve)"""
-    # Only managers can update flags
+async def update_flag(flag_id: str, update_data: dict, current_user: dict = Depends(get_current_user)):
+    """Update flag status"""
     if current_user["role"] != "manager":
         raise HTTPException(status_code=403, detail="Only managers can update flags")
     
@@ -361,84 +362,25 @@ async def update_flag(flag_id: str, status_update: str, note: Optional[str] = No
     if not flag:
         raise HTTPException(status_code=404, detail="Flag not found")
     
-    # Check if this manager manages the team member
     member = await members_collection.find_one({"_id": flag["member_id"]})
     if not member or member["manager_id"] != current_user["_id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    update_data = {"status": status_update}
-    if note:
-        update_data["manager_note"] = note
-    if status_update == "resolved":
-        update_data["resolved_at"] = datetime.utcnow().strftime("%Y-%m-%d")
+    update_fields = {}
+    if "status" in update_data:
+        update_fields["status"] = update_data["status"]
+    if "manager_note" in update_data:
+        update_fields["manager_note"] = update_data["manager_note"]
+    if update_data.get("status") == "resolved":
+        update_fields["resolved_at"] = datetime.utcnow().strftime("%Y-%m-%d")
     
-    await flags_collection.update_one({"_id": flag_id}, {"$set": update_data})
+    await flags_collection.update_one({"_id": flag_id}, {"$set": update_fields})
     updated_flag = await flags_collection.find_one({"_id": flag_id})
     return serialize_doc(updated_flag)
 
 
 # ============================================================
-# AI ROUTES
-# ============================================================
-
-@app.post("/api/ai/risk")
-async def analyze_risk_endpoint(request: RiskAnalysisRequest, current_user: dict = Depends(get_current_user)):
-    """Analyze psychological safety risks"""
-    # Only managers can request risk analysis
-    if current_user["role"] != "manager":
-        raise HTTPException(status_code=403, detail="Only managers can request risk analysis")
-    
-    try:
-        result = await analyze_risk(
-            member_name=request.member_name,
-            member_title=request.member_title,
-            reflection=request.reflection.model_dump(),
-            previous_sessions=request.previous_sessions,
-            active_flags=request.active_flags
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Risk analysis failed: {str(e)}")
-
-
-@app.post("/api/ai/starters")
-async def generate_starters_endpoint(request: ConversationStartersRequest, current_user: dict = Depends(get_current_user)):
-    """Generate conversation starters"""
-    # Only managers can request conversation starters
-    if current_user["role"] != "manager":
-        raise HTTPException(status_code=403, detail="Only managers can request conversation starters")
-    
-    try:
-        result = await generate_conversation_starters(
-            member_name=request.member_name,
-            member_title=request.member_title,
-            reflection=request.reflection.model_dump(),
-            active_flags=request.active_flags
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Starter generation failed: {str(e)}")
-
-
-@app.post("/api/ai/summary")
-async def generate_summary_endpoint(request: SessionSummaryRequest, current_user: dict = Depends(get_current_user)):
-    """Generate session summary"""
-    # Only managers can request session summaries
-    if current_user["role"] != "manager":
-        raise HTTPException(status_code=403, detail="Only managers can request session summaries")
-    
-    try:
-        result = await generate_session_summary(
-            manager_notes=request.manager_notes.model_dump(),
-            actions=request.actions
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Summary generation failed: {str(e)}")
-
-
-# ============================================================
-# DASHBOARD STATS ROUTES
+# DASHBOARD STATS
 # ============================================================
 
 @app.get("/api/stats/dashboard")
@@ -452,22 +394,15 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     members = await members_cursor.to_list(length=1000)
     member_ids = [m["_id"] for m in members]
     
-    # Count upcoming sessions (next 7 days)
-    from datetime import datetime
-    current_date = datetime(2026, 3, 21)  # Using our seed data date
-    upcoming_count = len([m for m in members if m.get("next_session") and 
-                         (datetime.strptime(m["next_session"], "%Y-%m-%d") - current_date).days <= 7])
-    
-    # Count completed this month
-    completed_cursor = sessions_collection.find({
-        "manager_id": current_user["_id"],
-        "status": "completed",
-        "date": {"$gte": "2026-03-01"}
+    # Count submissions for this week
+    this_week_count = await submissions_collection.count_documents({
+        "member_id": {"$in": member_ids},
+        "date": CURRENT_WEEK
     })
-    completed_count = await sessions_collection.count_documents({
-        "manager_id": current_user["_id"],
-        "status": "completed",
-        "date": {"$gte": "2026-03-01"}
+    
+    # Count total submissions
+    total_submissions = await submissions_collection.count_documents({
+        "member_id": {"$in": member_ids}
     })
     
     # Count active flags
@@ -476,44 +411,47 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
         "status": "open"
     })
     
-    # Calculate team health score (simplified)
-    # Get latest session for each member and average their scores
-    total_score = 0
-    members_with_sessions = 0
+    # Calculate team health score
+    submissions_cursor = submissions_collection.find({
+        "member_id": {"$in": member_ids},
+        "date": CURRENT_WEEK
+    })
+    this_week_submissions = await submissions_cursor.to_list(length=1000)
     
-    for member in members:
-        latest_session = await sessions_collection.find_one(
-            {"member_id": member["_id"], "status": "completed"},
-            sort=[("date", -1)]
-        )
-        if latest_session and latest_session.get("pre_meeting"):
-            pm = latest_session["pre_meeting"]
-            scores = []
-            for field in ["feeling_about_work", "safe_to_raise_concerns", "feel_supported", "workload_manageable", "target_confidence"]:
-                if pm.get(field):
-                    scores.append(pm[field])
-            if scores:
-                avg = sum(scores) / len(scores)
-                member_score = (avg / 5) * 100
-                
-                # Deduct for flags
-                member_flags = await flags_collection.count_documents({
-                    "member_id": member["_id"],
-                    "status": "open"
-                })
-                member_score -= (member_flags * 5)
-                member_score = max(0, min(100, member_score))
-                
-                total_score += member_score
-                members_with_sessions += 1
+    total_health = 0
+    member_count = 0
     
-    team_health_score = round(total_score / members_with_sessions) if members_with_sessions > 0 else 0
+    for sub in this_week_submissions:
+        responses = sub.get("responses", {})
+        wellbeing_fields = ["feeling_about_work", "safe_to_raise_concerns", "feel_supported", "workload_manageable", "target_confidence"]
+        scores = []
+        for field in wellbeing_fields:
+            if responses.get(field) and isinstance(responses[field], dict):
+                rating = responses[field].get("rating")
+                if rating:
+                    scores.append(rating)
+        
+        if scores:
+            member_health = (sum(scores) / len(scores) / 5) * 100
+            # Deduct for flags
+            member_flags = await flags_collection.count_documents({
+                "member_id": sub["member_id"],
+                "status": "open"
+            })
+            member_health -= (member_flags * 8)
+            member_health = max(0, min(100, member_health))
+            total_health += member_health
+            member_count += 1
+    
+    team_health_score = round(total_health / member_count) if member_count > 0 else 0
     
     return {
-        "upcoming_sessions": upcoming_count,
-        "completed_this_month": completed_count,
+        "this_week_submissions": this_week_count,
+        "total_team_members": len(members),
+        "total_submissions": total_submissions,
         "team_health_score": team_health_score,
-        "active_flags": active_flags_count
+        "active_flags": active_flags_count,
+        "current_week": CURRENT_WEEK
     }
 
 

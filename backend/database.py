@@ -7,12 +7,12 @@ load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
 
 client = AsyncIOMotorClient(MONGO_URL)
-db = client.performos_one_on_one
+db = client.performos_one_on_one_v2
 
 # Collections
 users_collection = db.users
 members_collection = db.members
-sessions_collection = db.sessions
+submissions_collection = db.submissions  # Changed from sessions to submissions
 flags_collection = db.flags
 
 async def init_db():
@@ -20,8 +20,9 @@ async def init_db():
     # Create indexes
     await users_collection.create_index("email", unique=True)
     await members_collection.create_index("manager_id")
-    await sessions_collection.create_index("member_id")
-    await sessions_collection.create_index("manager_id")
+    await submissions_collection.create_index("member_id")
+    await submissions_collection.create_index("date")
+    await submissions_collection.create_index([("member_id", 1), ("date", 1)], unique=True)
     await flags_collection.create_index("member_id")
-    await flags_collection.create_index("session_id")
+    await flags_collection.create_index("submission_id")
     print("✅ Database indexes created")

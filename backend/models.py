@@ -54,10 +54,6 @@ class TeamMemberBase(BaseModel):
     email: EmailStr
     title: str
     manager_id: str
-    cadence: str  # "weekly", "fortnightly", "monthly"
-    next_session: Optional[str] = None
-    last_session: Optional[str] = None
-    avatar: Optional[str] = None
 
 class TeamMemberCreate(TeamMemberBase):
     pass
@@ -72,49 +68,36 @@ class TeamMember(TeamMemberBase):
         json_encoders = {ObjectId: str}
 
 
-# Session Models
-class PreMeetingReflection(BaseModel):
-    proud_of: Optional[str] = ""
-    stuck_on: Optional[str] = ""
-    need_from_manager: Optional[str] = ""
-    target_confidence: Optional[int] = None
-    feeling_about_work: Optional[int] = None
-    safe_to_raise_concerns: Optional[int] = None
-    anything_affecting: Optional[str] = ""
-    feel_supported: Optional[int] = None
-    workload_manageable: Optional[int] = None
+# NEW: Weekly Submission Models with dual rating+comment
+class ResponseItem(BaseModel):
+    rating: int  # 1-5
+    comment: str
 
-class ManagerNotes(BaseModel):
-    check_in: Optional[str] = ""
-    results_review: Optional[str] = ""
-    goal_alignment: Optional[str] = ""
-    support_development: Optional[str] = ""
-    wellbeing: Optional[str] = ""
-    private_note: Optional[str] = ""
+class WeeklyReflection(BaseModel):
+    # Performance questions
+    proud_of: Optional[ResponseItem] = None
+    stuck_on: Optional[ResponseItem] = None
+    need_from_manager: Optional[ResponseItem] = None
+    target_confidence: Optional[ResponseItem] = None
+    # Wellbeing questions
+    feeling_about_work: Optional[ResponseItem] = None
+    safe_to_raise_concerns: Optional[ResponseItem] = None
+    feel_supported: Optional[ResponseItem] = None
+    workload_manageable: Optional[ResponseItem] = None
+    anything_affecting: Optional[ResponseItem] = None
 
-class Action(BaseModel):
-    action: str
-    owner: str  # "manager" or "team_member"
-    status: str = "pending"  # "pending" or "completed"
-
-class SessionBase(BaseModel):
-    manager_id: str
+class SubmissionBase(BaseModel):
     member_id: str
-    date: str
-    status: str = "scheduled"  # "scheduled", "in_progress", "completed"
-    pre_meeting: Optional[PreMeetingReflection] = None
-    manager_notes: Optional[ManagerNotes] = None
-    actions: Optional[List[Action]] = []
-    follow_ups: Optional[List[str]] = []
-    flags_detected: Optional[List[str]] = []  # List of flag IDs
-    ai_summary: Optional[str] = None
+    date: str  # Monday date (YYYY-MM-DD)
+    responses: WeeklyReflection
+    submitted_at: Optional[str] = None
 
-class SessionCreate(SessionBase):
+class SubmissionCreate(SubmissionBase):
     pass
 
-class Session(SessionBase):
+class Submission(SubmissionBase):
     id: str = Field(alias="_id")
-    created_at: Optional[datetime] = None
+    flags_detected: Optional[List[str]] = []  # List of flag IDs
 
     class Config:
         populate_by_name = True
@@ -122,13 +105,15 @@ class Session(SessionBase):
         json_encoders = {ObjectId: str}
 
 
-# Flag Models
+# Flag Models with comment snippets
 class FlagBase(BaseModel):
     member_id: str
-    session_id: Optional[str] = None
+    submission_id: Optional[str] = None
+    date: str  # Monday date
     category: str  # "wellbeing", "psychological_safety", "workload", "engagement", "performance_confidence", "team_dynamics", "manager_gap"
     severity: str  # "watch", "concern", "action_required"
-    signal: str
+    signal: str  # Description of the flag
+    comment_snippet: Optional[str] = None  # The comment that triggered this flag
     status: str = "open"  # "open", "acknowledged", "resolved"
     manager_note: Optional[str] = None
     resolved_at: Optional[str] = None
@@ -138,7 +123,6 @@ class FlagCreate(FlagBase):
 
 class Flag(FlagBase):
     id: str = Field(alias="_id")
-    created_at: str
 
     class Config:
         populate_by_name = True
@@ -146,45 +130,20 @@ class Flag(FlagBase):
         json_encoders = {ObjectId: str}
 
 
-# AI Request/Response Models
-class RiskAnalysisRequest(BaseModel):
-    member_id: str
+# AI Request/Response Models (unchanged but included for completeness)
+class AIRiskAnalysisRequest(BaseModel):
     member_name: str
     member_title: str
-    reflection: PreMeetingReflection
-    previous_sessions: Optional[List[Dict[str, Any]]] = []
-    active_flags: Optional[List[Dict[str, Any]]] = []
+    responses: Dict[str, ResponseItem]
+    previous_submissions: Optional[List[Dict]] = []
 
 class RiskFlag(BaseModel):
     category: str
     severity: str
     signal: str
-    quote_trigger: Optional[str] = ""
+    comment_snippet: Optional[str] = ""
 
-class RiskAnalysisResponse(BaseModel):
+class AIRiskAnalysisResponse(BaseModel):
     flags: List[RiskFlag]
     overall_sentiment: str
     summary: str
-
-class ConversationStartersRequest(BaseModel):
-    member_name: str
-    member_title: str
-    reflection: PreMeetingReflection
-    active_flags: Optional[List[Dict[str, Any]]] = []
-
-class ConversationStartersResponse(BaseModel):
-    starters: List[str]
-
-class SessionSummaryRequest(BaseModel):
-    manager_notes: ManagerNotes
-    actions: List[Action]
-
-class KeyAction(BaseModel):
-    action: str
-    owner: str
-    due: str
-
-class SessionSummaryResponse(BaseModel):
-    summary: str
-    key_actions: List[KeyAction]
-    follow_ups: List[str]

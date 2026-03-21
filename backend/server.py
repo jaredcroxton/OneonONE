@@ -461,29 +461,30 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
 
 @app.post("/api/generate-coaching")
 async def generate_coaching(payload: dict):
-    """Generate AI coaching for manager using Claude API"""
+    """Generate AI coaching for manager using OpenAI API"""
     import httpx
     
-    # Call Claude API
+    # Call OpenAI API
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "https://api.anthropic.com/v1/messages",
+                "https://api.openai.com/v1/chat/completions",
                 headers={
                     "Content-Type": "application/json",
-                    "x-api-key": "sk-ant-api03-Z_-N_VHF5Iv-3IhEbJJcC2Yah2NUMo3sLkgB85T5Y2RN4EYg88dCv-dREGZADCEkwTmQtk5svmfq7pBG5Z-cQ-hnllZgAA",
-                    "anthropic-version": "2023-06-01"
+                    "Authorization": "Bearer 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"
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "gpt-4-turbo-preview",
+                    "messages": [{"role": "user", "content": payload.get("prompt")}],
                     "max_tokens": 3000,
-                    "messages": [{"role": "user", "content": payload.get("prompt")}]
+                    "temperature": 0.7
                 },
-                timeout=60.0
+                timeout=90.0
             )
             
             if response.status_code != 200:
-                raise HTTPException(status_code=500, detail=f"Claude API request failed with status {response.status_code}")
+                error_text = response.text
+                raise HTTPException(status_code=500, detail=f"OpenAI API request failed: {error_text}")
             
             return response.json()
     except Exception as e:

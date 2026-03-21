@@ -852,7 +852,7 @@ RULES:
 - The weekly challenge should be specific enough that the manager can tell if they did it or not.
 - Maximum 3 strengths, 3 gaps, 3 overdue actions, 2 skill building items.`;
 
-      // Call Anthropic Claude API via backend
+      // Call OpenAI API via backend
       const response = await fetch(`${API_BASE}/api/generate-coaching`, {
         method: 'POST',
         headers: {
@@ -867,7 +867,7 @@ RULES:
       }
 
       const data = await response.json();
-      const coachingText = data.content[0].text;
+      const coachingText = data.choices[0].message.content;
       
       // Parse JSON response
       const coachingData = JSON.parse(coachingText.replace(/```json\n?|\n?```/g, '').trim());

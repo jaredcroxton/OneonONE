@@ -459,6 +459,37 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     }
 
 
+@app.post("/api/generate-coaching")
+async def generate_coaching(payload: dict):
+    """Generate AI coaching for manager using Claude API"""
+    import httpx
+    
+    # Call Claude API
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": "sk-ant-api03-Z_-N_VHF5Iv-3IhEbJJcC2Yah2NUMo3sLkgB85T5Y2RN4EYg88dCv-dREGZADCEkwTmQtk5svmfq7pBG5Z-cQ-hnllZgAA",
+                    "anthropic-version": "2023-06-01"
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 3000,
+                    "messages": [{"role": "user", "content": payload.get("prompt")}]
+                },
+                timeout=60.0
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=500, detail=f"Claude API request failed with status {response.status_code}")
+            
+            return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate coaching: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

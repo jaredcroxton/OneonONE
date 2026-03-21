@@ -373,6 +373,8 @@ function App() {
   const [healthDetailMember, setHealthDetailMember] = useState(null);
   const [briefing, setBriefing] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
+  const [coaching, setCoaching] = useState(null);
+  const [coachingLoading, setCoachingLoading] = useState(false);
   
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -766,6 +768,118 @@ RULES:
     }
   };
 
+  const generateCoaching = async () => {
+    setCoachingLoading(true);
+    try {
+      // Calculate days each flag has been open
+      const today = new Date(CURRENT_WEEK);
+      const activeFlagsWithDays = flags.filter(f => f.status === 'open').map(flag => {
+        const flagDate = new Date(flag.date);
+        const daysOpen = Math.floor((today - flagDate) / (1000 * 60 * 60 * 24));
+        const member = members.find(m => m._id === flag.member_id);
+        return {
+          member: member?.name || 'Unknown',
+          category: flag.category,
+          severity: flag.severity,
+          signal: flag.signal,
+          dateCreated: flag.date,
+          daysOpen,
+          status: flag.status
+        };
+      });
+
+      // Calculate team trends
+      const teamTrends = members.map(member => {
+        const memberSubs = allSubmissions.filter(s => s.member_id === member._id).sort((a, b) => a.date.localeCompare(b.date));
+        if (memberSubs.length < 2) return null;
+
+        const wellbeingMetrics = ['feeling_about_work', 'safe_to_raise_concerns', 'workload_manageable'];
+        const trends = {};
+        wellbeingMetrics.forEach(metric => {
+          const values = memberSubs.map(s => s.responses?.[metric]?.rating).filter(Boolean);
+          if (values.length >= 2) {
+            const delta = values[values.length - 1] - values[0];
+            trends[metric] = delta < 0 ? 'declining' : delta > 0 ? 'improving' : 'stable';
+          }
+        });
+
+        const hasDecline = Object.values(trends).some(t => t === 'declining');
+        return {
+          name: member.name,
+          wellbeingTrend: hasDecline ? 'declining' : 'stable',
+          declining: Object.entries(trends).filter(([k, v]) => v === 'declining').map(([k]) => k)
+        };
+      }).filter(Boolean);
+
+      const teamHealthScore = dashboardStats?.team_health_score || 0;
+
+      // Build coaching prompt for Claude
+      const prompt = `You are a private executive coach for a people manager. Your job is to give them honest, actionable coaching on how they're managing their team's wellbeing and performance — based on real data, not generic advice.
+
+MANAGER: ${user.name}, ${user.title || 'Manager'}
+TEAM SIZE: ${members.length}
+TEAM HEALTH: ${teamHealthScore}/100
+
+ACTIVE FLAGS:
+${activeFlagsWithDays.map(f => `- ${f.member}: ${f.category} (${f.severity}) - "${f.signal}" - Created ${f.dateCreated}, ${f.daysOpen} days open, status: ${f.status}`).join('\n')}
+
+TEAM TRENDS:
+${teamTrends.map(t => `- ${t.name}: wellbeing ${t.wellbeingTrend}${t.declining.length > 0 ? ', declining metrics: ' + t.declining.join(', ') : ''}`).join('\n')}
+
+Generate a JSON response with NO markdown, NO backticks:
+{
+  "coaching_summary": "2-3 sentences on how the manager is doing overall — be honest but constructive. Reference specific flags and timelines.",
+  "strengths": [
+    "Something specific the manager is doing well based on the data"
+  ],
+  "gaps": [
+    {"issue": "Specific gap in their management response", "impact": "What this is causing for the team member", "suggestion": "Concrete action with a framework or script they can use"}
+  ],
+  "overdue_actions": [
+    {"flag": "Which flag", "days_open": 14, "person": "Name", "script": "A word-for-word conversation opener the manager can use this week — warm, human, not HR-scripted"}
+  ],
+  "skill_building": [
+    {"skill": "A specific management skill to develop", "why": "Why this matters based on current team data", "practice": "One thing to try this week to build this skill"}
+  ],
+  "weekly_challenge": "One specific thing to do differently this week — make it concrete and measurable"
+}
+
+RULES:
+- Be direct. If the manager has left a flag unresolved for 3 weeks, say so clearly.
+- Frame gaps as growth opportunities, not failures.
+- Conversation scripts must sound like a real human talking, not a HR template. Example: "Priya, I've been reflecting on the team meeting two weeks ago and I think I missed something. Can you tell me how you experienced that? I want to make sure your perspective is heard."
+- Skill building should connect to the actual gaps — if the issue is unresolved psych safety flags, the skill might be "having difficult conversations about team dynamics."
+- The weekly challenge should be specific enough that the manager can tell if they did it or not.
+- Maximum 3 strengths, 3 gaps, 3 overdue actions, 2 skill building items.`;
+
+      // Call Anthropic Claude API via backend
+      const response = await fetch(`${API_BASE}/api/generate-coaching`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ prompt })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate coaching');
+      }
+
+      const data = await response.json();
+      const coachingText = data.content[0].text;
+      
+      // Parse JSON response
+      const coachingData = JSON.parse(coachingText.replace(/```json\n?|\n?```/g, '').trim());
+      setCoaching(coachingData);
+    } catch (err) {
+      console.error('Error generating coaching:', err);
+      showToast('Failed to generate coaching. Please try again.', 'error');
+    } finally {
+      setCoachingLoading(false);
+    }
+  };
+
   // LOGIN VIEW
   if (view === 'login') {
     return (
@@ -1081,6 +1195,13 @@ RULES:
                   data-testid="tab-ai-briefing"
                 >
                   AI Briefing
+                </button>
+                <button
+                  className={`tab ${managerTab === 'coaching' ? 'active' : ''}`}
+                  onClick={() => setManagerTab('coaching')}
+                  data-testid="tab-coaching"
+                >
+                  My Coaching
                 </button>
               </div>
 
@@ -1597,6 +1718,121 @@ RULES:
                           data-testid="regenerate-briefing-button"
                         >
                           Regenerate Briefing
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {managerTab === 'coaching' && (
+                <div className="tab-content" data-testid="coaching-content">
+                  <div className="coaching-privacy-badge" data-testid="privacy-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                    Private — only visible to you
+                  </div>
+
+                  {!coaching && !coachingLoading && (
+                    <div className="briefing-empty">
+                      <div className="briefing-empty-icon">✨</div>
+                      <h3 className="briefing-empty-title">Personal Manager Coaching</h3>
+                      <p className="briefing-empty-desc">
+                        Get honest, data-driven coaching on how you're responding to your team's wellbeing signals. 
+                        This is your private space — no one else can see this coaching.
+                      </p>
+                      <button 
+                        className="btn-primary btn-large"
+                        onClick={generateCoaching}
+                        data-testid="generate-coaching-button"
+                      >
+                        Generate Coaching
+                      </button>
+                    </div>
+                  )}
+
+                  {coachingLoading && (
+                    <div className="briefing-loading">
+                      <div className="briefing-loading-icon">✨</div>
+                      <div className="briefing-loading-text">Analysing your management response...</div>
+                      <div className="briefing-loading-subtext">
+                        Reviewing {flags.filter(f => f.status === 'open').length} open flags, team trends, and action patterns
+                      </div>
+                    </div>
+                  )}
+
+                  {coaching && !coachingLoading && (
+                    <div className="coaching-content">
+                      <div className="coaching-card coaching-summary">
+                        <h3 className="coaching-card-title">How You're Doing</h3>
+                        <p className="coaching-summary-text">{coaching.coaching_summary}</p>
+                      </div>
+
+                      <div className="coaching-card coaching-strengths">
+                        <h3 className="coaching-card-title">What You're Doing Well</h3>
+                        <ul className="coaching-list">
+                          {coaching.strengths?.map((strength, i) => (
+                            <li key={i} className="coaching-list-item">{strength}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="coaching-card coaching-gaps">
+                        <h3 className="coaching-card-title">Where to Focus</h3>
+                        {coaching.gaps?.map((gap, i) => (
+                          <div key={i} className="gap-item">
+                            <div className="gap-issue">{gap.issue}</div>
+                            <div className="gap-impact">Impact: {gap.impact}</div>
+                            <div className="gap-suggestion">→ {gap.suggestion}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {coaching.overdue_actions && coaching.overdue_actions.length > 0 && (
+                        <div className="coaching-card coaching-overdue">
+                          <h3 className="coaching-card-title">Overdue Conversations</h3>
+                          {coaching.overdue_actions.map((action, i) => (
+                            <div key={i} className="overdue-item">
+                              <div className="overdue-header">
+                                <span className="overdue-person">{action.person}</span>
+                                <span className="overdue-days">{action.days_open} days open</span>
+                              </div>
+                              <div className="overdue-flag">{action.flag}</div>
+                              <div className="overdue-script">
+                                <div className="script-label">Conversation opener:</div>
+                                <div className="script-text">"{action.script}"</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="coaching-two-col">
+                        <div className="coaching-card coaching-skills">
+                          <h3 className="coaching-card-title">Skill Development</h3>
+                          {coaching.skill_building?.map((skill, i) => (
+                            <div key={i} className="skill-item">
+                              <div className="skill-name">{skill.skill}</div>
+                              <div className="skill-why">{skill.why}</div>
+                              <div className="skill-practice">This week: {skill.practice}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="coaching-card coaching-challenge">
+                          <h3 className="coaching-card-title">This Week's Challenge</h3>
+                          <div className="challenge-text">{coaching.weekly_challenge}</div>
+                        </div>
+                      </div>
+
+                      <div className="briefing-actions">
+                        <button 
+                          className="btn-secondary"
+                          onClick={() => { setCoaching(null); generateCoaching(); }}
+                          data-testid="regenerate-coaching-button"
+                        >
+                          Regenerate Coaching
                         </button>
                       </div>
                     </div>

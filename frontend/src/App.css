@@ -2205,3 +2205,259 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   color: #EF4444;
 }
+
+
+/* COACHING TAB STYLES */
+.coaching-privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #7C3AED;
+  margin-bottom: 1.5rem;
+}
+
+.coaching-content {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.coaching-card {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+}
+
+.coaching-summary {
+  background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(167,139,250,0.04));
+  border-color: rgba(139,92,246,0.15);
+}
+
+.coaching-summary-text {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.6;
+}
+
+.coaching-strengths {
+  background: rgba(16,185,129,0.04);
+  border-color: rgba(16,185,129,0.15);
+}
+
+.coaching-gaps {
+  background: rgba(245,158,11,0.04);
+  border-color: rgba(245,158,11,0.15);
+}
+
+.coaching-overdue {
+  background: rgba(239,68,68,0.04);
+  border-color: rgba(239,68,68,0.2);
+}
+
+.coaching-skills {
+  background: rgba(6,182,212,0.04);
+  border-color: rgba(6,182,212,0.15);
+}
+
+.coaching-challenge {
+  background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(6,182,212,0.04));
+  border-color: rgba(139,92,246,0.15);
+}
+
+.coaching-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 1.25rem;
+}
+
+.coaching-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.coaching-list-item {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.5;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.coaching-list-item::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #10B981;
+  font-weight: 600;
+}
+
+.gap-item {
+  padding: 1rem;
+  background: rgba(11, 18, 32, 0.02);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.gap-item:last-child {
+  margin-bottom: 0;
+}
+
+.gap-issue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 0.5rem;
+}
+
+.gap-impact {
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.gap-suggestion {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.5;
+}
+
+.overdue-item {
+  padding: 1.25rem;
+  background: rgba(11, 18, 32, 0.02);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 3px solid #EF4444;
+}
+
+.overdue-item:last-child {
+  margin-bottom: 0;
+}
+
+.overdue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.overdue-person {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.overdue-days {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #EF4444;
+  padding: 0.25rem 0.75rem;
+  background: rgba(239,68,68,0.1);
+  border-radius: 999px;
+}
+
+.overdue-flag {
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+  margin-bottom: 1rem;
+}
+
+.overdue-script {
+  background: white;
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.script-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-on-light-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.script-text {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.coaching-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .coaching-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skill-item {
+  padding: 1rem;
+  background: rgba(11, 18, 32, 0.02);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.skill-item:last-child {
+  margin-bottom: 0;
+}
+
+.skill-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 0.5rem;
+}
+
+.skill-why {
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.skill-practice {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.skill-practice::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: #06B6D4;
+  font-weight: 600;
+}
+
+.challenge-text {
+  font-size: 1rem;
+  color: var(--text-on-light);
+  line-height: 1.6;
+  font-weight: 500;
+  padding: 1rem;
+  background: rgba(11, 18, 32, 0.02);
+  border-radius: 8px;
+  border-left: 3px solid #7C3AED;
+}

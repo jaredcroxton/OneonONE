@@ -640,15 +640,26 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--accent-green);
 }
 
-/* TRENDS */
-.trends-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+/* TRENDS V4 - BAR CHART TRENDS */
+.trends-layout {
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  margin-bottom: 2rem;
 }
 
-.trend-card {
+.trends-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.trends-secondary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.trend-card-v4 {
   background: var(--surface-dark);
   border: 1px solid var(--border-dark);
   border-radius: var(--radius-card);
@@ -658,18 +669,113 @@ h1, h2, h3, h4, h5, h6 {
   gap: 1rem;
 }
 
+.trend-card-v4.light {
+  background: white;
+  border-color: var(--border-light);
+}
+
+.trend-card-v4.light .trend-label,
+.trend-card-v4.light .trend-score {
+  color: var(--text-on-light);
+}
+
+.trend-card-v4.light .trend-subtitle,
+.trend-card-v4.light .trend-date {
+  color: var(--text-on-light-muted);
+}
+
+.trend-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trend-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .trend-label {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-on-dark);
+}
+
+.trend-score {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.trend-subtitle {
+  font-size: 0.8125rem;
   color: var(--text-on-dark-muted);
 }
 
-.sparkline {
-  display: block;
+.trend-delta {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  width: 100%;
+}
+
+.trend-bar {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 4px;
+}
+
+.trend-dates {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.trend-date {
+  flex: 1;
+  text-align: center;
+  font-size: 0.625rem;
+  color: var(--text-on-dark-muted);
+}
+
+.trend-card-v4.compact {
+  padding: 1rem;
+}
+
+.trend-card-v4.compact .trend-label {
+  font-size: 0.8125rem;
+}
+
+.trend-card-v4.compact .trend-score {
+  font-size: 1.5rem;
+}
+
+/* Mini trend bars for manager table */
+.mini-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 20px;
+  width: 60px;
+}
+
+.mini-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.4s ease;
+  min-height: 3px;
 }
 
 .sparkline-empty {
-  color: var(--text-on-dark-muted);
-  font-size: 1.25rem;
+  color: var(--text-on-light-muted);
+  font-size: 0.875rem;
 }
 
 .privacy-note {
@@ -1139,5 +1245,13 @@ h1, h2, h3, h4, h5, h6 {
     right: 1rem;
     left: 1rem;
     bottom: 1rem;
+  }
+  
+  .trends-secondary {
+    grid-template-columns: 1fr;
+  }
+  
+  .performance-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -122,22 +122,116 @@ function RatingCommentInput({ question, value, onChange, disabled }) {
   );
 }
 
-function Sparkline({ data }) {
-  if (!data || data.length === 0) return <span className="sparkline-empty">—</span>;
+function TrendCard({ metricKey, submissions, dark, compact }) {
+  const wellbeingLabels = {
+    feeling_about_work: "Feeling about work",
+    safe_to_raise_concerns: "Psychological safety",
+    feel_supported: "Team support",
+    workload_manageable: "Workload",
+    target_confidence: "Confidence in targets"
+  };
   
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
+  const wellbeingSubs = {
+    feeling_about_work: "How are you feeling about work?",
+    safe_to_raise_concerns: "Do you feel safe raising concerns?",
+    feel_supported: "How supported do you feel?",
+    workload_manageable: "Is your workload manageable?",
+    target_confidence: "Confidence in hitting targets"
+  };
+  
+  const label = wellbeingLabels[metricKey] || metricKey;
+  const subtitle = wellbeingSubs[metricKey] || "";
+  const data = submissions
+    .map(s => ({ rating: s.responses?.[metricKey]?.rating, date: s.date }))
+    .filter(d => d.rating != null)
+    .sort((a, b) => a.date.localeCompare(b.date)); // Sort chronologically
+  
+  if (data.length === 0) return null;
+
+  const latest = data[data.length - 1].rating;
+  const first = data[0].rating;
+  const delta = data.length >= 2 ? latest - first : 0;
+  const col = getScoreColor(latest);
+
+  const deltaText = delta > 0 
+    ? `▲ ${Math.abs(delta).toFixed(1)} improving` 
+    : delta < 0 
+    ? `▼ ${Math.abs(delta).toFixed(1)} declining` 
+    : data.length >= 2 ? "— Stable" : "";
+  const deltaCol = delta > 0 ? "#22C55E" : delta < 0 ? "#F87171" : "var(--text-on-dark-muted)";
+
+  const barHeight = compact ? 32 : 48;
+
+  return (
+    <div className={`trend-card-v4 ${dark ? 'dark' : 'light'} ${compact ? 'compact' : ''}`} data-testid={`trend-${metricKey}`}>
+      <div className="trend-header">
+        <div className="trend-label-row">
+          <div className="trend-label">{label}</div>
+          <div className="trend-score" style={{ color: col }}>{latest}/5</div>
+        </div>
+        {!compact && subtitle && <div className="trend-subtitle">{subtitle}</div>}
+        {deltaText && (
+          <div className="trend-delta" style={{ color: deltaCol }}>
+            {deltaText}
+          </div>
+        )}
+      </div>
+
+      <div className="trend-bars" style={{ height: barHeight }}>
+        {data.map((d, i) => {
+          const pct = (d.rating / 5) * 100;
+          const barColor = getScoreColor(d.rating);
+          const isLatest = i === data.length - 1;
+          return (
+            <div 
+              key={i}
+              className="trend-bar"
+              style={{
+                height: `${pct}%`,
+                background: barColor,
+                opacity: isLatest ? 1 : 0.7
+              }}
+              data-testid={`trend-bar-${i}`}
+            />
+          );
+        })}
+      </div>
+
+      {!compact && (
+        <div className="trend-dates">
+          {data.map((d, i) => (
+            <div key={i} className="trend-date">{formatDateShort(d.date)}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniTrendBars({ data }) {
+  if (!data || data.length < 2) return <span className="sparkline-empty">—</span>;
+  
+  const latest = data[data.length - 1];
+  const col = getScoreColor(latest);
   
   return (
-    <svg className="sparkline" width="80" height="24" viewBox="0 0 80 24">
-      <polyline
-        fill="none"
-        stroke="var(--accent-teal)"
-        strokeWidth="2"
-        points={data.map((v, i) => `${(i / (data.length - 1 || 1)) * 80},${24 - ((v - min) / range) * 20}`).join(' ')}
-      />
-    </svg>
+    <div className="mini-trend-bars">
+      {data.map((v, i) => {
+        const pct = (v / 5) * 100;
+        const barColor = getScoreColor(v);
+        return (
+          <div
+            key={i}
+            className="mini-bar"
+            style={{
+              height: `${pct}%`,
+              background: barColor,
+              opacity: i === data.length - 1 ? 1 : 0.7
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -497,26 +591,15 @@ function App() {
                     <p className="section-description">Track your wellbeing and confidence over time.</p>
                   </div>
 
-                  <div className="trends-grid">
-                    <div className="trend-card">
-                      <div className="trend-label">Confidence in targets</div>
-                      <Sparkline data={calculateTrends(mySubmissions, 'target_confidence')} />
+                  <div className="trends-layout">
+                    <div className="trends-primary">
+                      <TrendCard metricKey="feeling_about_work" submissions={mySubmissions} dark={true} />
+                      <TrendCard metricKey="safe_to_raise_concerns" submissions={mySubmissions} dark={true} />
+                      <TrendCard metricKey="feel_supported" submissions={mySubmissions} dark={true} />
                     </div>
-                    <div className="trend-card">
-                      <div className="trend-label">Feeling about work</div>
-                      <Sparkline data={calculateTrends(mySubmissions, 'feeling_about_work')} />
-                    </div>
-                    <div className="trend-card">
-                      <div className="trend-label">Psychological safety</div>
-                      <Sparkline data={calculateTrends(mySubmissions, 'safe_to_raise_concerns')} />
-                    </div>
-                    <div className="trend-card">
-                      <div className="trend-label">Team support</div>
-                      <Sparkline data={calculateTrends(mySubmissions, 'feel_supported')} />
-                    </div>
-                    <div className="trend-card">
-                      <div className="trend-label">Workload</div>
-                      <Sparkline data={calculateTrends(mySubmissions, 'workload_manageable')} />
+                    <div className="trends-secondary">
+                      <TrendCard metricKey="workload_manageable" submissions={mySubmissions} dark={true} compact={true} />
+                      <TrendCard metricKey="target_confidence" submissions={mySubmissions} dark={true} compact={true} />
                     </div>
                   </div>
 
@@ -730,7 +813,7 @@ function App() {
                                 )}
                               </td>
                               <td>
-                                <Sparkline data={calculateTrends(memberSubmissions, 'feeling_about_work')} />
+                                <MiniTrendBars data={calculateTrends(memberSubmissions, 'feeling_about_work')} />
                               </td>
                             </tr>
                           );

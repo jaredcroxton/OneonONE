@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-PerformOS One-on-One Builder - Backend API Testing
-Tests all API endpoints with manager and team member credentials
+PerformOS One-on-One Builder V2 - Backend API Testing
+Tests all V2 API endpoints with manager and team member credentials
 """
 
 import requests
@@ -30,7 +30,7 @@ class PerformOSAPITester:
 
     def make_request(self, method, endpoint, token=None, data=None, expected_status=200):
         """Make API request with error handling"""
-        url = f"{self.base_url}/{endpoint}"
+        url = f"{self.base_url}{endpoint}"
         headers = {'Content-Type': 'application/json'}
         if token:
             headers['Authorization'] = f'Bearer {token}'

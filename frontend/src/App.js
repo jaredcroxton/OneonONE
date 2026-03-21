@@ -380,6 +380,9 @@ function App() {
   
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [execTab, setExecTab] = useState('org_overview');
+  const [execSummary, setExecSummary] = useState(null);
+  const [execSummaryLoading, setExecSummaryLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -879,6 +882,112 @@ RULES:
       showToast('Failed to generate coaching. Please try again.', 'error');
     } finally {
       setCoachingLoading(false);
+    }
+  };
+
+  const generateExecutiveSummary = async () => {
+    setExecSummaryLoading(true);
+    try {
+      // Prepare comprehensive org data
+      const teamsData = orgTeams.map(team => ({
+        name: team.name,
+        manager: team.manager,
+        size: team.size,
+        health: team.health,
+        trend: team.trend,
+        activeFlags: team.activeFlags,
+        riskMembers: team.riskMembers,
+        attrition: team.attrition || []
+      }));
+
+      const prompt = `You are an executive intelligence advisor. Analyze this organization's team health data and produce a strategic summary for the VP of Operations.
+
+ORGANIZATION DATA:
+${teamsData.map(t => `
+TEAM: ${t.name}
+Manager: ${t.manager}
+Size: ${t.size} people
+Health Score: ${t.health}/100
+5-Week Trend: ${t.trend.join(' → ')}
+Active Flags: ${t.activeFlags}
+At Risk Members: ${t.riskMembers}
+Attrition Risks: ${JSON.stringify(t.attrition)}
+`).join('\n')}
+
+Generate a JSON response with NO markdown, NO backticks:
+{
+  "headline": "Single most important thing — be direct and specific. Reference team names and numbers. Example: 'Customer Success is in crisis (41/100) with 5 unresolved flags — needs executive intervention this week'",
+  "org_pulse": "3-4 sentence board-ready summary with specific teams and numbers. What's the overall state? What needs immediate attention? What's trending well?",
+  "teams_ranked": [
+    {
+      "name": "Team name",
+      "status": "critical|at_risk|stable|thriving",
+      "summary": "One-liner about this team's current state"
+    }
+  ],
+  "top_risks": [
+    {
+      "issue": "Specific risk with team name",
+      "urgency": "immediate|this_week|this_month",
+      "recommendation": "Specific executive action"
+    }
+  ],
+  "bright_spots": [
+    {
+      "team": "Team name",
+      "achievement": "What's going well"
+    }
+  ],
+  "manager_observations": [
+    {
+      "manager": "Manager name",
+      "team": "Team name",
+      "observation": "Data-backed observation about this manager's team performance",
+      "skip_level_topic": "Suggested discussion topic for next skip-level"
+    }
+  ],
+  "strategic_recommendations": [
+    {
+      "action": "Org-level recommendation",
+      "timeframe": "immediate|this_week|this_month|this_quarter",
+      "rationale": "Why this matters based on the data"
+    }
+  ],
+  "board_question": "One provocative, data-backed question for the leadership team meeting"
+}
+
+RULES:
+- Rank teams worst-first (critical → at_risk → stable → thriving)
+- Be specific: use team names, manager names, and numbers
+- Urgency matters: flag anything that needs action THIS WEEK
+- Manager observations should prep skip-level conversations with data context
+- Strategic recommendations are org-level (not individual team tactics)
+- Board question should be thought-provoking and grounded in the data
+- Maximum 5 risks, 3 bright spots, 4 manager observations, 3 strategic recommendations`;
+
+      const response = await fetch(`${API_BASE}/api/generate-exec-summary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ prompt })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate executive summary');
+      }
+
+      const data = await response.json();
+      const summaryText = data.choices[0].message.content;
+      
+      const summaryData = JSON.parse(summaryText.replace(/```json\n?|\n?```/g, '').trim());
+      setExecSummary(summaryData);
+    } catch (err) {
+      console.error('Error generating executive summary:', err);
+      showToast('Failed to generate executive summary. Please try again.', 'error');
+    } finally {
+      setExecSummaryLoading(false);
     }
   };
 
@@ -1889,24 +1998,43 @@ RULES:
 
           <section className="content-section light">
             <div className="content-container">
-              <div className="exec-summary-row">
-                <div className="exec-kpi">
-                  <div className="exec-kpi-value">{orgTeams.length}</div>
-                  <div className="exec-kpi-label">Teams</div>
-                </div>
-                <div className="exec-kpi">
-                  <div className="exec-kpi-value" style={{ color: totalFlags > 5 ? '#EF4444' : totalFlags > 0 ? '#F59E0B' : '#10B981' }}>
-                    {totalFlags}
-                  </div>
-                  <div className="exec-kpi-label">Active Flags</div>
-                </div>
-                <div className="exec-kpi">
-                  <div className="exec-kpi-value" style={{ color: totalAtRisk > 2 ? '#EF4444' : totalAtRisk > 0 ? '#F59E0B' : '#10B981' }}>
-                    {totalAtRisk}
-                  </div>
-                  <div className="exec-kpi-label">At Risk</div>
-                </div>
+              <div className="tabs-bar">
+                <button
+                  className={`tab ${execTab === 'org_overview' ? 'active' : ''}`}
+                  onClick={() => setExecTab('org_overview')}
+                  data-testid="tab-org-overview"
+                >
+                  Org Overview
+                </button>
+                <button
+                  className={`tab ${execTab === 'ai_summary' ? 'active' : ''}`}
+                  onClick={() => setExecTab('ai_summary')}
+                  data-testid="tab-ai-summary"
+                >
+                  AI Executive Summary
+                </button>
               </div>
+
+              {execTab === 'org_overview' && (
+                <div className="tab-content">
+                  <div className="exec-summary-row">
+                    <div className="exec-kpi">
+                      <div className="exec-kpi-value">{orgTeams.length}</div>
+                      <div className="exec-kpi-label">Teams</div>
+                    </div>
+                    <div className="exec-kpi">
+                      <div className="exec-kpi-value" style={{ color: totalFlags > 5 ? '#EF4444' : totalFlags > 0 ? '#F59E0B' : '#10B981' }}>
+                        {totalFlags}
+                      </div>
+                      <div className="exec-kpi-label">Active Flags</div>
+                    </div>
+                    <div className="exec-kpi">
+                      <div className="exec-kpi-value" style={{ color: totalAtRisk > 2 ? '#EF4444' : totalAtRisk > 0 ? '#F59E0B' : '#10B981' }}>
+                        {totalAtRisk}
+                      </div>
+                      <div className="exec-kpi-label">At Risk</div>
+                    </div>
+                  </div>
 
               <h3 className="section-heading" style={{ marginTop: '3rem' }}>Organization Heatmap</h3>
               <p className="section-description" style={{ marginBottom: '1.5rem' }}>
@@ -2106,6 +2234,143 @@ RULES:
                     </div>
                   </div>
                 </>
+              )}
+                </div>
+              )}
+
+              {execTab === 'ai_summary' && (
+                <div className="tab-content" data-testid="ai-summary-content">
+                  {!execSummary && !execSummaryLoading && (
+                    <div className="briefing-empty">
+                      <div className="briefing-empty-icon">📊</div>
+                      <h3 className="briefing-empty-title">AI Executive Intelligence</h3>
+                      <p className="briefing-empty-desc">
+                        Get a board-ready summary of organization health, ranked teams, top risks, and strategic recommendations.
+                      </p>
+                      <button 
+                        className="btn-primary btn-large"
+                        onClick={generateExecutiveSummary}
+                        data-testid="generate-exec-summary-button"
+                      >
+                        Generate Executive Summary
+                      </button>
+                    </div>
+                  )}
+
+                  {execSummaryLoading && (
+                    <div className="briefing-loading">
+                      <div className="briefing-loading-icon">📊</div>
+                      <div className="briefing-loading-text">Analyzing organization health data...</div>
+                      <div className="briefing-loading-subtext">
+                        Processing {orgTeams.length} teams, {totalFlags} flags, and {totalAtRisk} risk signals
+                      </div>
+                    </div>
+                  )}
+
+                  {execSummary && !execSummaryLoading && (
+                    <div className="exec-summary-content">
+                      <div className="exec-headline-card">
+                        <div className="exec-headline-icon">⚡</div>
+                        <div className="exec-headline-text">{execSummary.headline}</div>
+                      </div>
+
+                      <div className="exec-pulse-card">
+                        <h3 className="exec-card-title">Organization Pulse</h3>
+                        <p className="exec-pulse-text">{execSummary.org_pulse}</p>
+                      </div>
+
+                      <div className="exec-teams-ranked">
+                        <h3 className="exec-card-title">Teams by Status</h3>
+                        {execSummary.teams_ranked?.map((team, i) => (
+                          <div key={i} className={`ranked-team-row status-${team.status}`} data-testid={`ranked-team-${i}`}>
+                            <div className="ranked-team-left">
+                              <span className={`status-badge badge-${team.status}`}>
+                                {team.status === 'critical' ? '🔴 Critical' : team.status === 'at_risk' ? '🟠 At Risk' : team.status === 'stable' ? '🟢 Stable' : '✨ Thriving'}
+                              </span>
+                              <span className="ranked-team-name">{team.name}</span>
+                            </div>
+                            <div className="ranked-team-summary">{team.summary}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="exec-two-col">
+                        <div className="exec-risks-section">
+                          <h3 className="exec-card-title">Top Risks</h3>
+                          {execSummary.top_risks?.map((risk, i) => (
+                            <div key={i} className="risk-card">
+                              <div className="risk-header">
+                                <span className="risk-issue">{risk.issue}</span>
+                                <span className={`urgency-badge urgency-${risk.urgency}`}>
+                                  {risk.urgency === 'immediate' ? '🔴 Immediate' : risk.urgency === 'this_week' ? '🟠 This Week' : '🟡 This Month'}
+                                </span>
+                              </div>
+                              <div className="risk-recommendation">→ {risk.recommendation}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="exec-bright-section">
+                          <h3 className="exec-card-title">Bright Spots</h3>
+                          {execSummary.bright_spots?.map((spot, i) => (
+                            <div key={i} className="bright-card">
+                              <div className="bright-team">{spot.team}</div>
+                              <div className="bright-achievement">{spot.achievement}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="exec-manager-obs">
+                        <h3 className="exec-card-title">Manager Observations (Skip-Level Prep)</h3>
+                        {execSummary.manager_observations?.map((obs, i) => (
+                          <div key={i} className="manager-obs-card">
+                            <div className="obs-header">
+                              <span className="obs-manager">{obs.manager}</span>
+                              <span className="obs-team">({obs.team})</span>
+                            </div>
+                            <div className="obs-text">{obs.observation}</div>
+                            <div className="obs-topic">
+                              <span className="topic-label">Skip-level topic:</span>
+                              <span className="topic-text">{obs.skip_level_topic}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="exec-recommendations">
+                        <h3 className="exec-card-title">Strategic Recommendations</h3>
+                        {execSummary.strategic_recommendations?.map((rec, i) => (
+                          <div key={i} className="rec-item">
+                            <div className="rec-header">
+                              <span className="rec-action">{rec.action}</span>
+                              <span className={`timeframe-badge timeframe-${rec.timeframe}`}>
+                                {rec.timeframe === 'immediate' ? 'Immediate' : rec.timeframe === 'this_week' ? 'This Week' : rec.timeframe === 'this_month' ? 'This Month' : 'This Quarter'}
+                              </span>
+                            </div>
+                            <div className="rec-rationale">{rec.rationale}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="exec-board-question">
+                        <div className="board-q-icon">💭</div>
+                        <div className="board-q-label">Question for the Board</div>
+                        <div className="board-q-text">"{execSummary.board_question}"</div>
+                      </div>
+
+                      <div className="briefing-actions">
+                        <button 
+                          className="btn-secondary"
+                          onClick={() => { setExecSummary(null); generateExecutiveSummary(); }}
+                          data-testid="regenerate-exec-summary-button"
+                        >
+                          Regenerate Summary
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </section>

@@ -491,6 +491,37 @@ async def generate_coaching(payload: dict):
         raise HTTPException(status_code=500, detail=f"Failed to generate coaching: {str(e)}")
 
 
+@app.post("/api/generate-exec-summary")
+async def generate_exec_summary(payload: dict):
+    """Generate AI executive summary using OpenAI API"""
+    import httpx
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer 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"
+                },
+                json={
+                    "model": "gpt-4-turbo-preview",
+                    "messages": [{"role": "user", "content": payload.get("prompt")}],
+                    "max_tokens": 4000,
+                    "temperature": 0.7
+                },
+                timeout=90.0
+            )
+            
+            if response.status_code != 200:
+                error_text = response.text
+                raise HTTPException(status_code=500, detail=f"OpenAI API request failed: {error_text}")
+            
+            return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate executive summary: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

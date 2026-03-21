@@ -372,6 +372,9 @@ function App() {
   const [viewedSubmission, setViewedSubmission] = useState(null);
   const [briefing, setBriefing] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
+  
+  // Executive State
+  const [selectedTeam, setSelectedTeam] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -1555,31 +1558,37 @@ RULES:
                   </div>
                   <div className="exec-kpi-label">At Risk</div>
                 </div>
-                <div className="exec-kpi">
-                  <div className="exec-kpi-value">$600-800K</div>
-                  <div className="exec-kpi-label">Replacement Cost Exposure</div>
-                </div>
               </div>
 
               <h3 className="section-heading" style={{ marginTop: '3rem' }}>Organization Heatmap</h3>
               <p className="section-description" style={{ marginBottom: '1.5rem' }}>
-                Teams sorted by health score (worst-first). Engineering uses live data from team submissions.
+                Teams sorted by health score (worst-first). Click manager names to view team details. Engineering uses live data.
               </p>
 
-              <div className="org-heatmap">
-                {orgTeams.map(team => {
-                  const healthColor = team.health >= 80 ? '#10B981' : team.health >= 60 ? '#06B6D4' : team.health >= 40 ? '#F59E0B' : '#EF4444';
-                  const trend5Weeks = team.trend || [];
-                  const trendDirection = trend5Weeks.length >= 2 ? 
-                    (trend5Weeks[trend5Weeks.length - 1] > trend5Weeks[0] ? 'up' : 
-                    trend5Weeks[trend5Weeks.length - 1] < trend5Weeks[0] ? 'down' : 'stable') : 'stable';
-                  
-                  return (
-                    <div key={team.id} className="heatmap-row" data-testid={`heatmap-${team.id}`}>
-                      <div className="heatmap-team">
-                        <div className="heatmap-team-name">{team.name}</div>
-                        <div className="heatmap-team-manager">{team.manager} · {team.headcount} people</div>
-                      </div>
+              {!selectedTeam && (
+                <div className="org-heatmap">
+                  {orgTeams.map(team => {
+                    const healthColor = team.health >= 80 ? '#10B981' : team.health >= 60 ? '#06B6D4' : team.health >= 40 ? '#F59E0B' : '#EF4444';
+                    const trend5Weeks = team.trend || [];
+                    const trendDirection = trend5Weeks.length >= 2 ? 
+                      (trend5Weeks[trend5Weeks.length - 1] > trend5Weeks[0] ? 'up' : 
+                      trend5Weeks[trend5Weeks.length - 1] < trend5Weeks[0] ? 'down' : 'stable') : 'stable';
+                    
+                    return (
+                      <div key={team.id} className="heatmap-row" data-testid={`heatmap-${team.id}`}>
+                        <div className="heatmap-team">
+                          <div className="heatmap-team-name">{team.name}</div>
+                          <div className="heatmap-team-manager">
+                            <button 
+                              className="manager-link"
+                              onClick={() => setSelectedTeam(team)}
+                              data-testid={`manager-link-${team.id}`}
+                            >
+                              {team.manager}
+                            </button>
+                            {' · '}{team.headcount} people
+                          </div>
+                        </div>
                       
                       <div className="heatmap-health">
                         <div 
@@ -1631,8 +1640,78 @@ RULES:
                   );
                 })}
               </div>
+              )}
 
-              {allAttritionRisks.length > 0 && (
+              {selectedTeam && (
+                <div className="team-detail-panel">
+                  <button className="btn-back" onClick={() => setSelectedTeam(null)} data-testid="back-to-heatmap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to heatmap
+                  </button>
+
+                  <div className="team-detail-header">
+                    <h3 className="team-detail-title">{selectedTeam.name} — {selectedTeam.manager}'s team</h3>
+                    <p className="team-detail-subtitle">
+                      {selectedTeam.headcount} members · Aggregated team scores (no individual data)
+                    </p>
+                  </div>
+
+                  <div className="team-detail-content">
+                    <div className="team-detail-metrics">
+                      <div className="team-detail-metric">
+                        <div className="team-detail-metric-value" style={{ 
+                          color: selectedTeam.health >= 80 ? '#10B981' : selectedTeam.health >= 60 ? '#06B6D4' : selectedTeam.health >= 40 ? '#F59E0B' : '#EF4444'
+                        }}>
+                          {selectedTeam.health}
+                        </div>
+                        <div className="team-detail-metric-label">Team Health Score</div>
+                      </div>
+                      <div className="team-detail-metric">
+                        <div className="team-detail-metric-value" style={{ color: selectedTeam.activeFlags > 0 ? '#EF4444' : '#10B981' }}>
+                          {selectedTeam.activeFlags}
+                        </div>
+                        <div className="team-detail-metric-label">Active Flags</div>
+                      </div>
+                      <div className="team-detail-metric">
+                        <div className="team-detail-metric-value" style={{ color: selectedTeam.riskMembers > 0 ? '#EF4444' : '#10B981' }}>
+                          {selectedTeam.riskMembers}
+                        </div>
+                        <div className="team-detail-metric-label">Members At Risk</div>
+                      </div>
+                    </div>
+
+                    {selectedTeam.attrition && selectedTeam.attrition.length > 0 && (
+                      <div className="team-detail-section">
+                        <h4 className="team-detail-section-title">Attrition Risks</h4>
+                        {selectedTeam.attrition.map((risk, i) => (
+                          <div key={i} className="attrition-card">
+                            <div className="attrition-header">
+                              <div className="attrition-role">
+                                <div className="attrition-role-title">{risk.role}</div>
+                              </div>
+                              <div 
+                                className="attrition-risk-score"
+                                style={{
+                                  background: `rgba(${risk.risk >= 70 ? '239, 68, 68' : '245, 158, 11'}, 0.1)`,
+                                  color: risk.risk >= 70 ? '#EF4444' : '#F59E0B',
+                                  border: `2px solid ${risk.risk >= 70 ? '#EF4444' : '#F59E0B'}`
+                                }}
+                              >
+                                {risk.risk}% flight risk
+                              </div>
+                            </div>
+                            <div className="attrition-reason">{risk.reason}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!selectedTeam && allAttritionRisks.length > 0 && (
                 <>
                   <h3 className="section-heading" style={{ marginTop: '3rem' }}>Attrition Risks</h3>
                   <p className="section-description" style={{ marginBottom: '1.5rem' }}>
@@ -1672,12 +1751,9 @@ RULES:
                   <div className="replacement-cost-banner">
                     <div className="replacement-cost-icon">⚠️</div>
                     <div className="replacement-cost-content">
-                      <div className="replacement-cost-title">Replacement Cost Exposure</div>
+                      <div className="replacement-cost-title">Elevated Flight Risk</div>
                       <div className="replacement-cost-text">
-                        {totalAtRisk} team members across {orgTeams.filter(t => t.riskMembers > 0).length} teams show elevated flight risk.
-                      </div>
-                      <div className="replacement-cost-amount">
-                        Estimated replacement cost: <strong>$600,000 – $800,000</strong>
+                        {totalAtRisk} team members across {orgTeams.filter(t => t.riskMembers > 0).length} teams show elevated flight risk signals based on declining scores, unresolved flags, and behavioural patterns.
                       </div>
                     </div>
                   </div>

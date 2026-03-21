@@ -1904,7 +1904,7 @@ h1, h2, h3, h4, h5, h6 {
 /* EXECUTIVE DASHBOARD */
 .exec-summary-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -1963,6 +1963,82 @@ h1, h2, h3, h4, h5, h6 {
 .heatmap-team-manager {
   font-size: 0.8125rem;
   color: var(--text-on-light-muted);
+}
+
+.manager-link {
+  background: none;
+  border: none;
+  color: #3B82F6;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: text-decoration 0.2s;
+}
+
+.manager-link:hover {
+  text-decoration: underline;
+}
+
+.team-detail-panel {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: 2rem;
+}
+
+.team-detail-header {
+  margin: 1.5rem 0 2rem;
+}
+
+.team-detail-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 0.5rem;
+}
+
+.team-detail-subtitle {
+  font-size: 0.9375rem;
+  color: var(--text-on-light-muted);
+}
+
+.team-detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.team-detail-metric {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(11, 18, 32, 0.03);
+  border-radius: var(--radius-card);
+}
+
+.team-detail-metric-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  margin-bottom: 0.5rem;
+}
+
+.team-detail-metric-label {
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+}
+
+.team-detail-section {
+  margin-top: 2rem;
+}
+
+.team-detail-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  margin-bottom: 1rem;
 }
 
 .heatmap-health {

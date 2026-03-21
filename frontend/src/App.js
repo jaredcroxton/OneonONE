@@ -240,6 +240,62 @@ function MiniTrendBars({ data }) {
   );
 }
 
+function ScoreChips({ submission }) {
+  const metrics = ['feeling_about_work', 'safe_to_raise_concerns', 'workload_manageable'];
+  return (
+    <div className="score-chips">
+      {metrics.map(metric => {
+        const rating = submission.responses?.[metric]?.rating;
+        if (!rating) return <div key={metric} className="score-chip empty">—</div>;
+        const color = getScoreColor(rating);
+        return (
+          <div 
+            key={metric} 
+            className="score-chip"
+            style={{ background: color }}
+            title={metric.replace(/_/g, ' ')}
+          >
+            {rating}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RatingCommentDisplay({ question, value }) {
+  const v = value || { rating: 0, comment: '' };
+  const color = getScoreColor(v.rating);
+  
+  return (
+    <div className="question-group-display">
+      <div className="question-label">{question.label}</div>
+      
+      <div className="rating-display">
+        <span className="rating-display-label">{question.ratingLabel}</span>
+        <div className="rating-blocks">
+          {[1, 2, 3, 4, 5].map(n => (
+            <div
+              key={n}
+              className={`rating-block ${v.rating === n ? 'selected' : ''}`}
+              style={v.rating === n ? { background: color, borderColor: color } : {}}
+            >
+              {n}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {v.comment && (
+        <div className="comment-display">
+          <div className="comment-display-label">Comment:</div>
+          <div className="comment-display-text">{v.comment}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WeekCard({ week, onClick, isLocked, isCurrentWeek }) {
   const weekDate = new Date(week + 'T00:00:00');
   const dayNum = weekDate.getDate();
@@ -312,6 +368,8 @@ function App() {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [flags, setFlags] = useState([]);
   const [allSubmissions, setAllSubmissions] = useState([]);
+  const [historyMember, setHistoryMember] = useState(null);
+  const [viewedSubmission, setViewedSubmission] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -785,22 +843,25 @@ function App() {
                 </button>
               </div>
 
-              {managerTab === 'schedule' && (
+              {managerTab === 'schedule' && !historyMember && !viewedSubmission && (
                 <div className="tab-content" data-testid="schedule-content">
                   <div className="table-container">
                     <table className="data-table">
                       <thead>
                         <tr>
-                          <th>Team Member</th>
-                          <th>Title</th>
-                          <th>This Week</th>
-                          <th>Recent Trends</th>
+                          <th style={{ width: '30%' }}>Team Member</th>
+                          <th style={{ width: '25%' }}>Title</th>
+                          <th style={{ width: '20%' }}>This Week</th>
+                          <th style={{ width: '25%' }}>History</th>
                         </tr>
                       </thead>
                       <tbody>
                         {members.map(member => {
                           const memberSubmissions = allSubmissions.filter(s => s.member_id === member._id);
                           const healthStatus = getHealthStatus(memberSubmissions);
+                          const thisWeekSubmission = memberSubmissions.find(s => s.date === CURRENT_WEEK);
+                          const hasSubmitted = !!thisWeekSubmission;
+                          
                           return (
                             <tr key={member._id} data-testid={`member-row-${member._id}`}>
                               <td>
@@ -811,20 +872,129 @@ function App() {
                               </td>
                               <td>{member.title}</td>
                               <td>
-                                {memberSubmissions.find(s => s.date === CURRENT_WEEK) ? (
-                                  <span className="status-badge submitted" data-testid="status-submitted">Submitted</span>
+                                {hasSubmitted ? (
+                                  <span 
+                                    className="status-badge submitted clickable" 
+                                    data-testid="status-submitted"
+                                    onClick={() => setViewedSubmission(thisWeekSubmission)}
+                                  >
+                                    Submitted
+                                  </span>
                                 ) : (
-                                  <span className="status-badge pending" data-testid="status-pending">Pending</span>
+                                  <span className="status-badge pending" data-testid="status-pending">Not submitted</span>
                                 )}
                               </td>
                               <td>
-                                <MiniTrendBars data={calculateTrends(memberSubmissions, 'feeling_about_work')} />
+                                <button
+                                  className="view-history-link"
+                                  onClick={() => setHistoryMember(member)}
+                                  data-testid={`view-history-${member._id}`}
+                                >
+                                  View history →
+                                </button>
                               </td>
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+
+              {managerTab === 'schedule' && historyMember && !viewedSubmission && (
+                <div className="tab-content" data-testid="history-panel">
+                  <div className="history-panel">
+                    <div className="history-header">
+                      <button className="btn-back" onClick={() => setHistoryMember(null)} data-testid="back-to-schedule">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back
+                      </button>
+                      <div className="history-member-info">
+                        <Avatar name={historyMember.name} size={48} />
+                        <div>
+                          <div className="history-member-name">{historyMember.name}</div>
+                          <div className="history-member-title">{historyMember.title}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="history-submissions">
+                      <h3 className="history-title">Submission history ({allSubmissions.filter(s => s.member_id === historyMember._id).length} weeks)</h3>
+                      
+                      <div className="history-list">
+                        {allSubmissions
+                          .filter(s => s.member_id === historyMember._id)
+                          .sort((a, b) => b.date.localeCompare(a.date))
+                          .map(submission => (
+                            <button
+                              key={submission._id}
+                              className="history-row"
+                              onClick={() => setViewedSubmission(submission)}
+                              data-testid={`history-row-${submission.date}`}
+                            >
+                              <div className="history-date">{formatDateLong(submission.date)}</div>
+                              <div className="history-row-right">
+                                <ScoreChips submission={submission} />
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {managerTab === 'schedule' && viewedSubmission && (
+                <div className="tab-content" data-testid="submission-detail">
+                  <div className="submission-detail">
+                    <button 
+                      className="btn-back" 
+                      onClick={() => setViewedSubmission(null)} 
+                      data-testid="back-from-detail"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      </svg>
+                      {historyMember ? 'Back to history' : 'Back to schedule'}
+                    </button>
+
+                    <div className="submission-detail-header">
+                      <Avatar name={members.find(m => m._id === viewedSubmission.member_id)?.name || 'Unknown'} size={56} />
+                      <div>
+                        <h2 className="submission-detail-name">{members.find(m => m._id === viewedSubmission.member_id)?.name || 'Unknown'}</h2>
+                        <div className="submission-detail-date">{formatDateLong(viewedSubmission.date)}</div>
+                      </div>
+                    </div>
+
+                    <div className="submission-detail-content">
+                      <div className="questions-section">
+                        <h3 className="section-subheading">Performance & Progress</h3>
+                        {QUESTIONS.filter(q => q.section === 'performance').map(question => (
+                          <RatingCommentDisplay
+                            key={question.id}
+                            question={question}
+                            value={viewedSubmission.responses?.[question.id]}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="questions-section">
+                        <h3 className="section-subheading">Wellbeing & Support</h3>
+                        {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
+                          <RatingCommentDisplay
+                            key={question.id}
+                            question={question}
+                            value={viewedSubmission.responses?.[question.id]}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

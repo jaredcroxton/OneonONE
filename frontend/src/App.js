@@ -436,94 +436,6 @@ function App() {
     setToast({ message, type });
   };
 
-  // Simulated org-wide team data for executive view
-  const orgTeams = useMemo(() => {
-    // Engineering - calculated from real data
-    const engHealth = dashboardStats?.team_health_score || 0;
-    const engFlags = flags.filter(f => f.status === 'open').length;
-    const engAtRisk = members.filter(m => {
-      const memberSubs = allSubmissions.filter(s => s.member_id === m._id);
-      const health = getHealthStatus(memberSubs);
-      return health === 'risk';
-    }).length;
-
-    return [
-      {
-        id: 'team_cs',
-        name: 'Customer Success',
-        manager: 'Liam Park',
-        headcount: 7,
-        health: 41,
-        trend: [65, 60, 55, 48, 41],
-        activeFlags: 5,
-        riskMembers: 2,
-        attrition: [
-          { role: 'CS Team Lead', risk: 71, reason: 'Wellbeing dropped 4→2, workload at 1/5, raised issues 4 times with no resolution' },
-          { role: 'Account Manager', risk: 55, reason: 'Missed 2 reflections, responses declining, minimal comments' }
-        ]
-      },
-      {
-        id: 'team_design',
-        name: 'Design',
-        manager: 'Mia Chen',
-        headcount: 4,
-        health: 58,
-        trend: [72, 68, 64, 60, 58],
-        activeFlags: 3,
-        riskMembers: 1,
-        attrition: [
-          { role: 'Senior Designer', risk: 62, reason: 'Support score declining, workload increasing, 2 flags unresolved for 3+ weeks' }
-        ]
-      },
-      {
-        id: 'team_eng',
-        name: 'Engineering',
-        manager: 'Alex Chen',
-        headcount: 6,
-        health: engHealth,
-        trend: [68, 65, 62, 58, engHealth],
-        activeFlags: engFlags,
-        riskMembers: engAtRisk,
-        attrition: engAtRisk > 0 ? [
-          { role: 'Backend Engineer', risk: 78, reason: 'Workload at 1/5 for two weeks, wellbeing at 2/5, burnout signals' }
-        ] : []
-      },
-      {
-        id: 'team_sales',
-        name: 'Sales',
-        manager: 'Jordan Blake',
-        headcount: 8,
-        health: 79,
-        trend: [76, 78, 75, 77, 79],
-        activeFlags: 1,
-        riskMembers: 0,
-        attrition: []
-      },
-      {
-        id: 'team_data',
-        name: 'Data & Analytics',
-        manager: 'Kai Patel',
-        headcount: 4,
-        health: 82,
-        trend: [78, 80, 79, 81, 82],
-        activeFlags: 0,
-        riskMembers: 0,
-        attrition: []
-      },
-      {
-        id: 'team_product',
-        name: 'Product',
-        manager: 'Sam Nakamura',
-        headcount: 5,
-        health: 88,
-        trend: [82, 84, 85, 86, 88],
-        activeFlags: 0,
-        riskMembers: 0,
-        attrition: []
-      }
-    ].sort((a, b) => a.health - b.health); // Sort worst-first
-  }, [dashboardStats, flags, members, allSubmissions]);
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -638,6 +550,94 @@ function App() {
     if (avgWellbeing >= 3) return 'caution';
     return 'risk';
   };
+
+  // Simulated org-wide team data for executive view
+  const orgTeams = useMemo(() => {
+    // Engineering - calculated from real data
+    const engHealth = dashboardStats?.team_health_score || 0;
+    const engFlags = flags.filter(f => f.status === 'open').length;
+    const engAtRisk = members.filter(m => {
+      const memberSubs = allSubmissions.filter(s => s.member_id === m._id);
+      const health = getHealthStatus(memberSubs);
+      return health === 'risk';
+    }).length;
+
+    return [
+      {
+        id: 'team_cs',
+        name: 'Customer Success',
+        manager: 'Liam Park',
+        headcount: 7,
+        health: 41,
+        trend: [65, 60, 55, 48, 41],
+        activeFlags: 5,
+        riskMembers: 2,
+        attrition: [
+          { role: 'CS Team Lead', risk: 71, reason: 'Wellbeing dropped 4→2, workload at 1/5, raised issues 4 times with no resolution' },
+          { role: 'Account Manager', risk: 55, reason: 'Missed 2 reflections, responses declining, minimal comments' }
+        ]
+      },
+      {
+        id: 'team_design',
+        name: 'Design',
+        manager: 'Mia Chen',
+        headcount: 4,
+        health: 58,
+        trend: [72, 68, 64, 60, 58],
+        activeFlags: 3,
+        riskMembers: 1,
+        attrition: [
+          { role: 'Senior Designer', risk: 62, reason: 'Support score declining, workload increasing, 2 flags unresolved for 3+ weeks' }
+        ]
+      },
+      {
+        id: 'team_eng',
+        name: 'Engineering',
+        manager: 'Alex Chen',
+        headcount: 6,
+        health: engHealth,
+        trend: [68, 65, 62, 58, engHealth],
+        activeFlags: engFlags,
+        riskMembers: engAtRisk,
+        attrition: engAtRisk > 0 ? [
+          { role: 'Backend Engineer', risk: 78, reason: 'Workload at 1/5 for two weeks, wellbeing at 2/5, burnout signals' }
+        ] : []
+      },
+      {
+        id: 'team_sales',
+        name: 'Sales',
+        manager: 'Jordan Blake',
+        headcount: 8,
+        health: 79,
+        trend: [76, 78, 75, 77, 79],
+        activeFlags: 1,
+        riskMembers: 0,
+        attrition: []
+      },
+      {
+        id: 'team_data',
+        name: 'Data & Analytics',
+        manager: 'Kai Patel',
+        headcount: 4,
+        health: 82,
+        trend: [78, 80, 79, 81, 82],
+        activeFlags: 0,
+        riskMembers: 0,
+        attrition: []
+      },
+      {
+        id: 'team_product',
+        name: 'Product',
+        manager: 'Sam Nakamura',
+        headcount: 5,
+        health: 88,
+        trend: [82, 84, 85, 86, 88],
+        activeFlags: 0,
+        riskMembers: 0,
+        attrition: []
+      }
+    ].sort((a, b) => a.health - b.health); // Sort worst-first
+  }, [dashboardStats, flags, members, allSubmissions]);
 
   const generateBriefing = async () => {
     setBriefingLoading(true);

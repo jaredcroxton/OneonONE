@@ -1,6 +1,7 @@
 {
-  "name": "frontend",
+  "name": "performos-one-on-one-builder",
   "version": "0.1.0",
+  "description": "PerformOS One-on-One Builder — Run structured performance conversations. Surface what matters. Protect your team.",
   "private": true,
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

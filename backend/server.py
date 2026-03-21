@@ -163,7 +163,7 @@ async def get_schedule_status(current_user: dict = Depends(get_current_user)):
     # Get all submissions for this member
     submissions_cursor = submissions_collection.find({"member_id": member["_id"]})
     submissions = await submissions_cursor.to_list(length=1000)
-    submission_dates = {sub["date"]: sub["_id"] for sub in submissions}
+    submission_dates = {sub["date"]: str(sub["_id"]) for sub in submissions}
     
     # Build status for each week
     schedule_status = []

@@ -122,7 +122,7 @@ function RatingCommentInput({ question, value, onChange, disabled }) {
   );
 }
 
-function TrendCard({ metricKey, submissions, dark, compact }) {
+function TrendCard({ metricKey, submissions, dark, compact, hideLabel = false }) {
   const wellbeingLabels = {
     feeling_about_work: "Feeling about work",
     safe_to_raise_concerns: "Psychological safety",
@@ -139,7 +139,9 @@ function TrendCard({ metricKey, submissions, dark, compact }) {
     target_confidence: "Confidence in hitting targets"
   };
   
-  const label = wellbeingLabels[metricKey] || metricKey;
+  const label = hideLabel && metricKey === 'safe_to_raise_concerns' 
+    ? "" 
+    : (wellbeingLabels[metricKey] || metricKey);
   const subtitle = wellbeingSubs[metricKey] || "";
   const data = submissions
     .map(s => ({ rating: s.responses?.[metricKey]?.rating, date: s.date }))
@@ -937,7 +939,7 @@ RULES:
                 <p className="demo-title">DEMO ACCOUNTS</p>
                 <p className="demo-item"><span className="demo-role">Executive:</span> rachel@performos.io / demo</p>
                 <p className="demo-item"><span className="demo-role">Manager:</span> alex@performos.io / demo</p>
-                <p className="demo-item"><span className="demo-role">Team Member:</span> sarah@performos.io / demo</p>
+                <p className="demo-item"><span className="demo-role">Team Member:</span> ashley@performos.io / demo</p>
               </div>
             </form>
           </div>
@@ -1012,7 +1014,7 @@ RULES:
                   <div className="trends-layout">
                     <div className="trends-primary">
                       <TrendCard metricKey="feeling_about_work" submissions={mySubmissions} dark={true} />
-                      <TrendCard metricKey="safe_to_raise_concerns" submissions={mySubmissions} dark={true} />
+                      <TrendCard metricKey="safe_to_raise_concerns" submissions={mySubmissions} dark={true} hideLabel={true} />
                       <TrendCard metricKey="feel_supported" submissions={mySubmissions} dark={true} />
                     </div>
                     <div className="trends-secondary">

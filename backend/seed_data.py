@@ -22,8 +22,9 @@ def mk(r, c):
 
 SEED_DATA = {
     "users": [
+        {"_id": "exec_001", "name": "Rachel Kim", "email": "rachel@performos.io", "hashed_password": None, "role": "executive", "title": "VP of Operations", "created_at": datetime(2026, 1, 1)},
         {"_id": "manager_001", "name": "Alex Chen", "email": "alex@performos.io", "hashed_password": None, "role": "manager", "title": "Area Manager", "created_at": datetime(2026, 1, 1)},
-        {"_id": "user_001", "name": "Sarah Mitchell", "email": "sarah@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
+        {"_id": "user_001", "name": "Ashley Mitchell", "email": "ashley@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
         {"_id": "user_002", "name": "James Rodriguez", "email": "james@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
         {"_id": "user_003", "name": "Priya Sharma", "email": "priya@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
         {"_id": "user_004", "name": "Marcus Thompson", "email": "marcus@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)},
@@ -31,7 +32,7 @@ SEED_DATA = {
         {"_id": "user_006", "name": "David O'Brien", "email": "david@performos.io", "hashed_password": None, "role": "team_member", "title": "Loyalty Sales Consultant", "created_at": datetime(2026, 1, 1)}
     ],
     "members": [
-        {"_id": "member_001", "user_id": "user_001", "name": "Sarah Mitchell", "email": "sarah@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
+        {"_id": "member_001", "user_id": "user_001", "name": "Ashley Mitchell", "email": "ashley@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
         {"_id": "member_002", "user_id": "user_002", "name": "James Rodriguez", "email": "james@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
         {"_id": "member_003", "user_id": "user_003", "name": "Priya Sharma", "email": "priya@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
         {"_id": "member_004", "user_id": "user_004", "name": "Marcus Thompson", "email": "marcus@performos.io", "title": "Loyalty Sales Consultant", "manager_id": "manager_001"},
@@ -144,6 +145,7 @@ async def seed_database():
     print(f"📅 Weekly schedule: {len(MONDAY_DATES)} Mondays from Feb 23 to June 29, 2026")
     print(f"📍 Current week: {CURRENT_WEEK}")
     print("\n📧 Demo credentials:")
+    print("   Executive: rachel@performos.io / demo")
     print("   Manager: alex@performos.io / demo")
-    print("   Team members: sarah@performos.io, james@performos.io, priya@performos.io, marcus@performos.io, emily@performos.io, david@performos.io")
+    print("   Team members: ashley@performos.io, james@performos.io, priya@performos.io, marcus@performos.io, emily@performos.io, david@performos.io")
     print("   Password for all: demo\n")

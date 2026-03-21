@@ -1,58 +1,14 @@
 [
   {
-    "content": "Phase 1: Research xAI Grok API and create POC test script",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: Test Grok API for risk analysis (psychological safety detection)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: Test Grok API for conversation starters generation",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: Test Grok API for session summary generation",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: Validate JSON parsing and error handling for all AI features",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: All user stories covered in POC testing",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: Design review - Get design guidelines from design agent",
-    "status": "in_progress"
-  },
-  {
-    "content": "Phase 2: Backend - FastAPI setup with MongoDB models and auth",
-    "status": "pending"
-  },
-  {
-    "content": "Phase 2: Backend - Implement AI integration endpoints with Grok",
-    "status": "pending"
-  },
-  {
-    "content": "Phase 2: Backend - Implement flag detection engine (rules + AI)",
-    "status": "pending"
-  },
-  {
     "content": "Phase 2: Frontend - Adapt reference UI to work with backend APIs",
-    "status": "pending"
-  },
-  {
-    "content": "Phase 2: Seed data - Create comprehensive team scenarios",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: All user stories covered in Development and testing",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: End to End Testing using Testing Agent",
-    "status": "pending"
+    "status": "in_progress"
   }
 ]

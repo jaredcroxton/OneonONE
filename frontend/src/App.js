@@ -884,15 +884,22 @@ RULES:
   if (view === 'login') {
     return (
       <div className="app-shell">
-        <div className="login-container">
-          <div className="login-left">
-            <div className="login-brand">
-              <h1 className="brand-title" data-testid="app-title">PerformOS</h1>
-              <p className="brand-subtitle">One-on-One Builder</p>
+        <div className="login-split-screen">
+          <div className="login-brand-panel">
+            <div className="brand-content">
+              <img 
+                src="/assets/logo-brand.png" 
+                alt="PerformOS" 
+                className="brand-logo-image"
+                data-testid="brand-logo"
+              />
+              <p className="brand-tagline">POWERING HIGH PERFORMANCE</p>
+              <p className="brand-description">
+                Structured conversations. Psychological safety insights. Better team outcomes.
+              </p>
             </div>
-            <p className="login-tagline">Structured conversations.<br/>Psychological safety insights.<br/>Better team outcomes.</p>
           </div>
-          <div className="login-right">
+          <div className="login-form-panel">
             <form className="login-form" onSubmit={handleLogin} data-testid="login-form">
               <h2 className="login-title">Welcome back</h2>
               {error && <div className="error-message" data-testid="login-error">{error}</div>}
@@ -920,17 +927,17 @@ RULES:
               </div>
               <button
                 type="submit"
-                className="btn-primary"
+                className="btn-login-gradient"
                 disabled={loading}
                 data-testid="login-submit-button"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
-              <div className="demo-credentials">
-                <p className="demo-title">Demo Accounts</p>
-                <p className="demo-item"><strong>Executive:</strong> rachel@performos.io / demo</p>
-                <p className="demo-item"><strong>Manager:</strong> alex@performos.io / demo</p>
-                <p className="demo-item"><strong>Team Member:</strong> sarah@performos.io / demo</p>
+              <div className="demo-credentials-box">
+                <p className="demo-title">DEMO ACCOUNTS</p>
+                <p className="demo-item"><span className="demo-role">Executive:</span> rachel@performos.io / demo</p>
+                <p className="demo-item"><span className="demo-role">Manager:</span> alex@performos.io / demo</p>
+                <p className="demo-item"><span className="demo-role">Team Member:</span> sarah@performos.io / demo</p>
               </div>
             </form>
           </div>

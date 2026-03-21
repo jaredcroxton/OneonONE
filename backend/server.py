@@ -241,18 +241,22 @@ async def create_submission(submission_data: SubmissionCreate, current_user: dic
     if not member:
         raise HTTPException(status_code=404, detail="Member record not found")
     
-    # Check if submission already exists for this date
+    # Check if submission already exists for this date (prevent duplicates)
     existing = await submissions_collection.find_one({
         "member_id": member["_id"],
         "date": submission_data.date
     })
     if existing:
+        # If already locked, cannot resubmit
+        if existing.get("locked"):
+            raise HTTPException(status_code=400, detail="This week's reflection has already been submitted and locked")
         raise HTTPException(status_code=400, detail="Submission already exists for this week")
     
-    # Create submission
+    # Create submission with locked timestamp
     submission_dict = submission_data.model_dump()
     submission_dict["member_id"] = member["_id"]
     submission_dict["submitted_at"] = datetime.utcnow().isoformat()
+    submission_dict["locked"] = datetime.utcnow().isoformat()  # Lock immediately upon submission
     
     result = await submissions_collection.insert_one(submission_dict)
     submission_id = str(result.inserted_id)

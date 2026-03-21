@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
@@ -6,26 +6,32 @@ const CURRENT_WEEK = '2026-03-23';
 
 // Utility functions
 const getAvatarColor = (name) => {
-  const colors = ['#3B82F6', '#06B6D4', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899'];
+  const colors = ['#3B82F6', '#14B8A6', '#22C55E', '#F59E0B', '#EC4899', '#8B5CF6'];
   return colors[name.length % colors.length];
 };
 
 const getScoreColor = (rating) => {
-  if (rating >= 4) return '#10B981';
-  if (rating === 3) return '#06B6D4';
+  if (rating >= 4) return '#22C55E';
+  if (rating === 3) return '#14B8A6';
   return '#F59E0B';
 };
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '—';
   const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDateLong = (dateStr) => {
+  if (!dateStr) return '—';
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 };
 
 const formatDateShort = (dateStr) => {
   if (!dateStr) return '—';
   const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 };
 
 // API helper
@@ -64,18 +70,18 @@ function Avatar({ name, size = 52, healthStatus }) {
   const color = getAvatarColor(name);
 
   return (
-    <div className="avatar" style={{ width: size, height: size, background: color }}>
+    <div className="avatar" style={{ width: size, height: size, background: color }} data-testid="user-avatar">
       {initials}
-      {healthStatus && <div className={`health-dot ${healthStatus}`}></div>}
+      {healthStatus && <div className={`health-dot ${healthStatus}`} data-testid="health-status-dot"></div>}
     </div>
   );
 }
 
-function RatingCommentInput({ question, value, onChange }) {
+function RatingCommentInput({ question, value, onChange, disabled }) {
   const v = value || { rating: 0, comment: '' };
 
   return (
-    <div className="question-group">
+    <div className="question-group" data-testid={`question-${question.id}`}>
       <div className="question-label">
         {question.label}
         {question.optional && <span className="optional">(optional)</span>}
@@ -90,7 +96,9 @@ function RatingCommentInput({ question, value, onChange }) {
               key={n}
               type="button"
               className={`rating-btn ${v.rating === n ? 'selected' : ''}`}
-              onClick={() => onChange({ ...v, rating: n })}
+              onClick={() => !disabled && onChange({ ...v, rating: n })}
+              disabled={disabled}
+              data-testid={`rating-${question.id}-${n}`}
             >
               {n}
             </button>
@@ -99,37 +107,85 @@ function RatingCommentInput({ question, value, onChange }) {
         <span className="rating-hint">{question.high}</span>
       </div>
 
-      <textarea
-        className="comment-area"
-        placeholder="Share your thoughts, context, or examples..."
-        value={v.comment}
-        onChange={(e) => onChange({ ...v, comment: e.target.value })}
-      />
+      <div className="comment-box">
+        <textarea
+          className="reflection-textarea"
+          placeholder="Add your thoughts..."
+          value={v.comment}
+          onChange={(e) => onChange({ ...v, comment: e.target.value })}
+          rows={3}
+          disabled={disabled}
+          data-testid={`comment-${question.id}`}
+        />
+      </div>
     </div>
   );
 }
 
-function RatingCommentDisplay({ question, response }) {
-  if (!response) return null;
+function Sparkline({ data }) {
+  if (!data || data.length === 0) return <span className="sparkline-empty">—</span>;
+  
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  
+  return (
+    <svg className="sparkline" width="80" height="24" viewBox="0 0 80 24">
+      <polyline
+        fill="none"
+        stroke="var(--accent-teal)"
+        strokeWidth="2"
+        points={data.map((v, i) => `${(i / (data.length - 1 || 1)) * 80},${24 - ((v - min) / range) * 20}`).join(' ')}
+      />
+    </svg>
+  );
+}
 
-  const { rating, comment } = response;
+function WeekCard({ week, onClick, isLocked, isCurrentWeek }) {
+  const weekDate = new Date(week + 'T00:00:00');
+  const dayNum = weekDate.getDate();
+  const monthShort = weekDate.toLocaleDateString('en-US', { month: 'short' });
+  
+  return (
+    <button
+      className={`week-card ${isLocked ? 'locked' : 'unlocked'} ${isCurrentWeek ? 'current' : ''}`}
+      onClick={onClick}
+      disabled={isLocked}
+      data-testid={`week-card-${week}`}
+    >
+      <div className="week-card-date">
+        <div className="week-day">{dayNum}</div>
+        <div className="week-month">{monthShort}</div>
+      </div>
+      {isLocked && (
+        <div className="week-status locked" data-testid="week-status-locked">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Submitted
+        </div>
+      )}
+      {!isLocked && isCurrentWeek && (
+        <div className="week-status current" data-testid="week-status-current">This week</div>
+      )}
+      {!isLocked && !isCurrentWeek && (
+        <div className="week-status unlocked" data-testid="week-status-unlocked">Open</div>
+      )}
+    </button>
+  );
+}
+
+function Toast({ message, type, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
 
   return (
-    <div className="response-display">
-      <div className="response-question">
-        <span>{question.label}</span>
-        <div className="rating-blocks">
-          {[1, 2, 3, 4, 5].map(n => (
-            <div
-              key={n}
-              className={`rating-block ${n <= rating ? `filled-${rating}` : 'unfilled'}`}
-            ></div>
-          ))}
-        </div>
-      </div>
-      <div className={`response-comment ${!comment ? 'empty' : ''}`}>
-        {comment || 'No comment provided'}
-      </div>
+    <div className={`toast toast-${type}`} data-testid="toast-notification">
+      <div className="toast-content">{message}</div>
+      <button className="toast-close" onClick={onClose} data-testid="toast-close">×</button>
     </div>
   );
 }
@@ -138,764 +194,647 @@ function RatingCommentDisplay({ question, response }) {
 function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('login');
-  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [toast, setToast] = useState(null);
+
+  // Team Member State
+  const [weeks, setWeeks] = useState([]);
+  const [scheduleStatus, setScheduleStatus] = useState([]);
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [mySubmissions, setMySubmissions] = useState([]);
+
+  // Manager State
+  const [managerTab, setManagerTab] = useState('schedule');
+  const [members, setMembers] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [flags, setFlags] = useState([]);
+  const [allSubmissions, setAllSubmissions] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      apiCall('/api/auth/me')
-        .then(userData => {
-          setUser(userData);
-          setView('home');
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      setView(parsedUser.role === 'manager' ? 'manager' : 'team_member');
     }
   }, []);
 
-  const handleLogin = async (email, password) => {
+  useEffect(() => {
+    if (user && view === 'team_member') {
+      loadTeamMemberData();
+    } else if (user && view === 'manager') {
+      loadManagerData();
+    }
+  }, [user, view]);
+
+  const loadTeamMemberData = async () => {
+    try {
+      const [weeksData, statusData, submissionsData] = await Promise.all([
+        apiCall('/api/schedule/weeks'),
+        apiCall('/api/schedule/status'),
+        apiCall('/api/submissions')
+      ]);
+      setWeeks(weeksData.weeks || []);
+      setScheduleStatus(statusData || []);
+      setMySubmissions(submissionsData || []);
+    } catch (err) {
+      console.error('Error loading team member data:', err);
+      showToast('Failed to load data', 'error');
+    }
+  };
+
+  const loadManagerData = async () => {
+    try {
+      const [membersData, statsData, flagsData, submissionsData] = await Promise.all([
+        apiCall('/api/members'),
+        apiCall('/api/stats/dashboard'),
+        apiCall('/api/flags?status_filter=open'),
+        apiCall('/api/submissions')
+      ]);
+      setMembers(membersData || []);
+      setDashboardStats(statsData || {});
+      setFlags(flagsData || []);
+      setAllSubmissions(submissionsData || []);
+    } catch (err) {
+      console.error('Error loading manager data:', err);
+      showToast('Failed to load dashboard', 'error');
+    }
+  };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
       const data = await apiCall('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
+
       localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
-      setView('home');
+      setView(data.user.role === 'manager' ? 'manager' : 'team_member');
+      showToast(`Welcome back, ${data.user.name}!`);
     } catch (err) {
-      alert(err.message || 'Login failed');
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     setView('login');
+    setEmail('');
+    setPassword('');
   };
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-
-  if (view === 'login') {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
-  if (view === 'home') {
-    return <HomeScreen user={user} onNavigate={setView} onLogout={handleLogout} />;
-  }
-
-  if (view === 'manager') {
-    return <ManagerDashboard user={user} onLogout={handleLogout} onNavigate={setView} />;
-  }
-
-  if (view === 'team_member') {
-    return <TeamMemberDashboard user={user} onLogout={handleLogout} onNavigate={setView} />;
-  }
-
-  return null;
-}
-
-// LOGIN SCREEN
-function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onLogin(email, password);
-  };
-
-  return (
-    <div className="login-container">
-      <div className="login-content fade-in">
-        <div className="logo">P</div>
-        <h1>PerformOS</h1>
-        <h2>One-on-One Builder</h2>
-        <p className="login-tagline">Better conversations. Safer teams. Stronger performance.</p>
-
-        <div className="login-card">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="alex@performos.io"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="demo"
-                required
-              />
-            </div>
-            <button type="submit" className="btn-primary">Sign In</button>
-          </form>
-        </div>
-
-        <div className="demo-accounts">
-          <p><strong>Demo Accounts</strong></p>
-          <p>Manager: alex@performos.io</p>
-          <p>Team Members: sarah@performos.io, james@performos.io, priya@performos.io</p>
-          <p>Password for all: demo</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// HOME SCREEN
-function HomeScreen({ user, onNavigate, onLogout }) {
-  return (
-    <div className="home-container">
-      <div className="home-content fade-in">
-        <div className="logo">P</div>
-        <h1>PerformOS</h1>
-        <h2>One-on-One Builder</h2>
-
-        <div className="role-cards">
-          <div className="role-card fade-in-1" onClick={() => onNavigate('manager')}>
-            <div className="role-icon">📊</div>
-            <h3>Manager View</h3>
-            <p>Run one-on-ones, review history, see team health and risk flags</p>
-          </div>
-          <div className="role-card fade-in-2" onClick={() => onNavigate('team_member')}>
-            <div className="role-icon">💬</div>
-            <h3>Team Member View</h3>
-            <p>Complete pre-meeting reflections, view your own history</p>
-          </div>
-        </div>
-
-        <div className="user-info">
-          Signed in as {user.name} · <button onClick={onLogout} className="link-btn">Sign out</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// TEAM MEMBER DASHBOARD
-function TeamMemberDashboard({ user, onLogout, onNavigate }) {
-  const [weeks, setWeeks] = useState([]);
-  const [scheduleStatus, setScheduleStatus] = useState([]);
-  const [selectedWeek, setSelectedWeek] = useState(null);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [weeksData, statusData] = await Promise.all([
-        apiCall('/api/schedule/weeks'),
-        apiCall('/api/schedule/status')
-      ]);
-      setWeeks(weeksData.weeks);
-      setScheduleStatus(statusData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const handleWeekClick = (week) => {
+    const status = scheduleStatus.find(s => s.date === week);
+    if (status && status.submitted) {
+      // View locked submission
+      const submission = mySubmissions.find(s => s.date === week);
+      if (submission) {
+        setFormData(submission.responses || {});
+        setSelectedWeek(week);
+      }
+    } else {
+      // Open form for new submission
+      setFormData({});
+      setSelectedWeek(week);
     }
   };
 
-  const handleWeekClick = async (date, isSubmitted) => {
-    if (date > CURRENT_WEEK) return; // Future dates not clickable
+  const handleSubmitReflection = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    if (isSubmitted) {
-      // Show submitted reflection
-      const submission = await apiCall(`/api/submissions?date=${date}`);
-      setSelectedSubmission(submission[0]);
+    try {
+      // Validate all required questions
+      const missingFields = QUESTIONS.filter(q => !q.optional).filter(q => {
+        const val = formData[q.id];
+        return !val || !val.rating || val.rating === 0;
+      });
+
+      if (missingFields.length > 0) {
+        setError('Please complete all required questions with both a rating and comment.');
+        setLoading(false);
+        return;
+      }
+
+      await apiCall('/api/submissions', {
+        method: 'POST',
+        body: JSON.stringify({
+          member_id: 'placeholder',
+          date: selectedWeek,
+          responses: formData
+        })
+      });
+
+      showToast('Reflection submitted successfully!', 'success');
       setSelectedWeek(null);
-    } else if (date === CURRENT_WEEK) {
-      // Open reflection form
-      setSelectedWeek(date);
-      setSelectedSubmission(null);
-    }
-  };
-
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-
-  if (selectedWeek) {
-    return (
-      <ReflectionForm
-        date={selectedWeek}
-        onBack={() => {
-          setSelectedWeek(null);
-          loadData();
-        }}
-        onSubmit={async (data) => {
-          await apiCall('/api/submissions', {
-            method: 'POST',
-            body: JSON.stringify(data)
-          });
-          alert('Reflection submitted successfully!');
-          setSelectedWeek(null);
-          loadData();
-        }}
-      />
-    );
-  }
-
-  if (selectedSubmission) {
-    return (
-      <SubmissionDisplay
-        submission={selectedSubmission}
-        onBack={() => setSelectedSubmission(null)}
-      />
-    );
-  }
-
-  return (
-    <div className="dashboard-container">
-      <nav className="navbar">
-        <div className="nav-content">
-          <div className="nav-left">
-            <div className="logo-small">P</div>
-            <span className="nav-title">PerformOS · My One-on-Ones</span>
-          </div>
-          <div className="nav-right">
-            <span>{user.name}</span>
-            <button onClick={() => onNavigate('home')} className="link-btn">← Home</button>
-          </div>
-        </div>
-      </nav>
-
-      <div className="dashboard-content">
-        <div className="dashboard-header fade-in">
-          <h1>My One-on-Ones</h1>
-          <p>Your reflections, goals, and development in one place</p>
-        </div>
-
-        <div className="tab-content fade-in-1">
-          <h3>Weekly Schedule</h3>
-          <div className="weekly-schedule">
-            {weeks.map((date, idx) => {
-              const status = scheduleStatus.find(s => s.date === date);
-              const isSubmitted = status?.submitted;
-              const isCurrent = date === CURRENT_WEEK;
-              const isPast = date < CURRENT_WEEK;
-              const isFuture = date > CURRENT_WEEK;
-              const isMissed = isPast && !isSubmitted;
-
-              let statusDot = 'upcoming';
-              let badgeText = 'Upcoming';
-              let badgeClass = 'upcoming';
-
-              if (isSubmitted) {
-                statusDot = 'submitted';
-                badgeText = 'Submitted';
-                badgeClass = 'submitted';
-              } else if (isCurrent) {
-                statusDot = 'current';
-                badgeText = 'Ready to complete';
-                badgeClass = 'ready';
-              } else if (isMissed) {
-                statusDot = 'missed';
-                badgeText = 'Missed';
-                badgeClass = 'missed';
-              }
-
-              return (
-                <div
-                  key={date}
-                  className={`week-row ${isFuture ? 'future' : ''}`}
-                  onClick={() => !isFuture && handleWeekClick(date, isSubmitted)}
-                  style={{ animationDelay: `${idx * 0.03}s` }}
-                >
-                  <div className={`status-dot ${statusDot}`}></div>
-                  <div className="week-date">{formatDate(date)}</div>
-                  {isCurrent && <div className="week-badge this-week">THIS WEEK</div>}
-                  <div className={`week-badge ${badgeClass}`}>{badgeText}</div>
-                  {!isFuture && <div className="arrow-icon">→</div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// REFLECTION FORM
-function ReflectionForm({ date, onBack, onSubmit }) {
-  const [responses, setResponses] = useState({});
-
-  const updateResponse = (questionId, value) => {
-    setResponses(prev => ({ ...prev, [questionId]: value }));
-  };
-
-  const isValid = () => {
-    const required = QUESTIONS.filter(q => !q.optional);
-    return required.every(q => responses[q.id]?.rating > 0);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({ date, responses });
-  };
-
-  const performanceQs = QUESTIONS.filter(q => q.section === 'performance');
-  const wellbeingQs = QUESTIONS.filter(q => q.section === 'wellbeing');
-
-  return (
-    <div className="dashboard-container">
-      <nav className="navbar">
-        <div className="nav-content">
-          <div className="nav-left">
-            <div className="logo-small">P</div>
-            <span className="nav-title">Weekly Reflection · {formatDateShort(date)}</span>
-          </div>
-        </div>
-      </nav>
-
-      <div className="dashboard-content">
-        <button onClick={onBack} className="back-btn">← Back to schedule</button>
-
-        <div className="reflection-form">
-          <form onSubmit={handleSubmit}>
-            <div className="form-section">
-              <h2 className="section-title">Performance Reflection</h2>
-              {performanceQs.map(q => (
-                <RatingCommentInput
-                  key={q.id}
-                  question={q}
-                  value={responses[q.id]}
-                  onChange={(val) => updateResponse(q.id, val)}
-                />
-              ))}
-            </div>
-
-            <div className="form-section">
-              <h2 className="section-title">Wellbeing & Safety</h2>
-              {wellbeingQs.map(q => (
-                <RatingCommentInput
-                  key={q.id}
-                  question={q}
-                  value={responses[q.id]}
-                  onChange={(val) => updateResponse(q.id, val)}
-                />
-              ))}
-            </div>
-
-            <div className="form-actions">
-              <button type="button" onClick={onBack} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary" disabled={!isValid()}>
-                Submit Reflection
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// SUBMISSION DISPLAY
-function SubmissionDisplay({ submission, onBack }) {
-  const performanceQs = QUESTIONS.filter(q => q.section === 'performance');
-  const wellbeingQs = QUESTIONS.filter(q => q.section === 'wellbeing');
-
-  return (
-    <div className="dashboard-container">
-      <nav className="navbar">
-        <div className="nav-content">
-          <div className="nav-left">
-            <div className="logo-small">P</div>
-            <span className="nav-title">Reflection · {formatDateShort(submission.date)}</span>
-          </div>
-        </div>
-      </nav>
-
-      <div className="dashboard-content">
-        <button onClick={onBack} className="back-btn">← Back to schedule</button>
-
-        <div className="submission-display">
-          <div className="tab-content">
-            <h3>Performance Reflection</h3>
-            {performanceQs.map(q => (
-              <RatingCommentDisplay
-                key={q.id}
-                question={q}
-                response={submission.responses[q.id]}
-              />
-            ))}
-          </div>
-
-          <div className="tab-content" style={{ marginTop: '20px' }}>
-            <h3>Wellbeing & Safety</h3>
-            {wellbeingQs.map(q => (
-              <RatingCommentDisplay
-                key={q.id}
-                question={q}
-                response={submission.responses[q.id]}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// MANAGER DASHBOARD
-function ManagerDashboard({ user, onLogout, onNavigate }) {
-  const [activeTab, setActiveTab] = useState('this-week');
-  const [stats, setStats] = useState(null);
-  const [thisWeekData, setThisWeekData] = useState([]);
-  const [flags, setFlags] = useState([]);
-  const [members, setMembers] = useState([]);
-  const [selectedMemberSubmission, setSelectedMemberSubmission] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [statsData, thisWeekRes, flagsData, membersData] = await Promise.all([
-        apiCall('/api/stats/dashboard'),
-        apiCall('/api/this-week/submissions'),
-        apiCall('/api/flags?status_filter=open'),
-        apiCall('/api/members')
-      ]);
-      setStats(statsData);
-      setThisWeekData(thisWeekRes);
-      setFlags(flagsData);
-      setMembers(membersData);
+      setFormData({});
+      await loadTeamMemberData();
     } catch (err) {
-      console.error(err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
-  }
+  const calculateTrends = (submissions, field) => {
+    return submissions
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(sub => sub.responses?.[field]?.rating || 0)
+      .filter(r => r > 0);
+  };
 
-  if (selectedMemberSubmission) {
+  const getHealthStatus = (recentSubmissions) => {
+    if (recentSubmissions.length === 0) return 'unknown';
+    const latest = recentSubmissions[recentSubmissions.length - 1];
+    const avgWellbeing = ['feeling_about_work', 'safe_to_raise_concerns', 'feel_supported', 'workload_manageable']
+      .map(field => latest.responses?.[field]?.rating || 0)
+      .filter(r => r > 0)
+      .reduce((sum, r) => sum + r, 0) / 4;
+    
+    if (avgWellbeing >= 4) return 'good';
+    if (avgWellbeing >= 3) return 'caution';
+    return 'risk';
+  };
+
+  // LOGIN VIEW
+  if (view === 'login') {
     return (
-      <ManagerSubmissionDetail
-        member={selectedMemberSubmission.member}
-        submission={selectedMemberSubmission.submission}
-        flags={flags.filter(f => f.member_id === selectedMemberSubmission.member._id)}
-        onBack={() => setSelectedMemberSubmission(null)}
-      />
+      <div className="app-shell">
+        <div className="login-container">
+          <div className="login-left">
+            <div className="login-brand">
+              <h1 className="brand-title" data-testid="app-title">PerformOS</h1>
+              <p className="brand-subtitle">One-on-One Builder</p>
+            </div>
+            <p className="login-tagline">Structured conversations.<br/>Psychological safety insights.<br/>Better team outcomes.</p>
+          </div>
+          <div className="login-right">
+            <form className="login-form" onSubmit={handleLogin} data-testid="login-form">
+              <h2 className="login-title">Welcome back</h2>
+              {error && <div className="error-message" data-testid="login-error">{error}</div>}
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  data-testid="login-email-input"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  data-testid="login-password-input"
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={loading}
+                data-testid="login-submit-button"
+              >
+                {loading ? 'Signing in...' : 'Sign in'}
+              </button>
+              <div className="demo-credentials">
+                <p className="demo-title">Demo Accounts</p>
+                <p className="demo-item"><strong>Manager:</strong> alex@performos.io / demo</p>
+                <p className="demo-item"><strong>Team Member:</strong> sarah@performos.io / demo</p>
+              </div>
+            </form>
+          </div>
+        </div>
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
     );
   }
 
-  const healthColor = stats.team_health_score >= 80 ? '#10B981' : 
-                       stats.team_health_score >= 60 ? '#06B6D4' : 
-                       stats.team_health_score >= 40 ? '#F59E0B' : '#EF4444';
+  // TEAM MEMBER VIEW
+  if (view === 'team_member') {
+    const isLocked = (week) => {
+      const status = scheduleStatus.find(s => s.date === week);
+      return status?.submitted || false;
+    };
 
-  return (
-    <div className="dashboard-container">
-      <nav className="navbar">
-        <div className="nav-content">
-          <div className="nav-left">
-            <div className="logo-small">P</div>
-            <span className="nav-title">PerformOS · Team One-on-Ones</span>
-          </div>
-          <div className="nav-right">
-            <span>{user.name}</span>
-            <button onClick={() => onNavigate('home')} className="link-btn">← Home</button>
-          </div>
-        </div>
-      </nav>
+    const submissionForWeek = selectedWeek ? mySubmissions.find(s => s.date === selectedWeek) : null;
+    const isViewingLocked = submissionForWeek && submissionForWeek.locked;
 
-      <div className="dashboard-content">
-        <div className="dashboard-header fade-in">
-          <h1>Team One-on-Ones</h1>
-          <p>Performance conversations and team health at a glance</p>
-        </div>
-
-        <div className="metrics-grid fade-in-1">
-          <div className="metric-card">
-            <div className="metric-label">This Week</div>
-            <div className="metric-value">{stats.this_week_submissions}/{stats.total_team_members}</div>
-            <div className="metric-icon">📋</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-label">Total Submissions</div>
-            <div className="metric-value">{stats.total_submissions}</div>
-            <div className="metric-icon">✓</div>
-          </div>
-          <div className="metric-card metric-hero" style={{ borderColor: healthColor }}>
-            <div className="metric-label">Team Health</div>
-            <div className="metric-value" style={{ color: healthColor }}>{stats.team_health_score}</div>
-            <div className="metric-icon">♡</div>
-            <div className="health-bar">
-              <div className="health-bar-fill" style={{ width: `${stats.team_health_score}%`, background: healthColor }}></div>
+    return (
+      <div className="app-shell">
+        <header className="app-header">
+          <div className="header-content">
+            <h1 className="header-title" data-testid="app-title">PerformOS</h1>
+            <div className="header-right">
+              <Avatar name={user.name} size={36} />
+              <div className="user-info">
+                <div className="user-name" data-testid="user-name">{user.name}</div>
+                <div className="user-role">{user.title || 'Team Member'}</div>
+              </div>
+              <button className="btn-secondary btn-sm" onClick={handleLogout} data-testid="logout-button">Sign out</button>
             </div>
           </div>
-          <div className="metric-card">
-            <div className="metric-label">Active Flags</div>
-            <div className="metric-value">{stats.active_flags}</div>
-            <div className="metric-icon">⚑</div>
-          </div>
-        </div>
+        </header>
 
-        <div className="tabs fade-in-2">
-          <button 
-            className={`tab ${activeTab === 'this-week' ? 'active' : ''}`}
-            onClick={() => setActiveTab('this-week')}
-          >
-            This Week
-            {thisWeekData.length > 0 && <span className="tab-badge">{thisWeekData.filter(d => d.has_submitted).length}/{thisWeekData.length}</span>}
-          </button>
-          <button 
-            className={`tab ${activeTab === 'team-health' ? 'active' : ''}`}
-            onClick={() => setActiveTab('team-health')}
-          >
-            Team Health
-            {flags.length > 0 && <span className="tab-badge">{flags.length}</span>}
-          </button>
-        </div>
+        <main className="main-content">
+          {!selectedWeek && (
+            <>
+              <section className="hero-section">
+                <h2 className="section-title" data-testid="team-member-title">Your Weekly Check-ins</h2>
+                <p className="section-subtitle">Share your progress, challenges, and how you're feeling with your manager.</p>
+              </section>
 
-        {activeTab === 'this-week' && (
-          <ThisWeekTab
-            data={thisWeekData}
-            flags={flags}
-            onMemberClick={(member, submission) => setSelectedMemberSubmission({ member, submission })}
-          />
-        )}
+              <section className="content-section light">
+                <div className="content-container">
+                  <div className="section-header">
+                    <h3 className="section-heading">Weekly Schedule</h3>
+                    <p className="section-description">Select a week to submit or review your reflection. Past submissions are locked and cannot be edited.</p>
+                  </div>
 
-        {activeTab === 'team-health' && (
-          <TeamHealthTab
-            flags={flags}
-            members={members}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
+                  <div className="weeks-grid" data-testid="weeks-grid">
+                    {weeks.map(week => (
+                      <WeekCard
+                        key={week}
+                        week={week}
+                        onClick={() => handleWeekClick(week)}
+                        isLocked={isLocked(week)}
+                        isCurrentWeek={week === CURRENT_WEEK}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </section>
 
-// THIS WEEK TAB
-function ThisWeekTab({ data, flags, onMemberClick }) {
-  if (data.length === 0) {
-    return (
-      <div className="tab-content">
-        <div className="empty-state">
-          <div className="empty-icon">📋</div>
-          <h3>No team members</h3>
-          <p>Team members will appear here once added</p>
-        </div>
+              <section className="content-section dark">
+                <div className="content-container">
+                  <div className="section-header">
+                    <h3 className="section-heading">Your Trends</h3>
+                    <p className="section-description">Track your wellbeing and confidence over time.</p>
+                  </div>
+
+                  <div className="trends-grid">
+                    <div className="trend-card">
+                      <div className="trend-label">Confidence in targets</div>
+                      <Sparkline data={calculateTrends(mySubmissions, 'target_confidence')} />
+                    </div>
+                    <div className="trend-card">
+                      <div className="trend-label">Feeling about work</div>
+                      <Sparkline data={calculateTrends(mySubmissions, 'feeling_about_work')} />
+                    </div>
+                    <div className="trend-card">
+                      <div className="trend-label">Psychological safety</div>
+                      <Sparkline data={calculateTrends(mySubmissions, 'safe_to_raise_concerns')} />
+                    </div>
+                    <div className="trend-card">
+                      <div className="trend-label">Team support</div>
+                      <Sparkline data={calculateTrends(mySubmissions, 'feel_supported')} />
+                    </div>
+                    <div className="trend-card">
+                      <div className="trend-label">Workload</div>
+                      <Sparkline data={calculateTrends(mySubmissions, 'workload_manageable')} />
+                    </div>
+                  </div>
+
+                  <div className="privacy-note">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>Your reflections are private and only visible to you and your manager.</span>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {selectedWeek && (
+            <section className="content-section light">
+              <div className="content-container">
+                <div className="reflection-header">
+                  <button className="btn-back" onClick={() => setSelectedWeek(null)} data-testid="back-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to schedule
+                  </button>
+                  <div className="reflection-title-row">
+                    <h2 className="reflection-title" data-testid="reflection-title">
+                      {isViewingLocked ? 'Your Reflection' : 'Weekly Reflection'}
+                    </h2>
+                    {isViewingLocked && (
+                      <div className="locked-badge" data-testid="locked-badge">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Submitted & Locked
+                      </div>
+                    )}
+                  </div>
+                  <p className="reflection-date">{formatDateLong(selectedWeek)}</p>
+                  {isViewingLocked && (
+                    <p className="reflection-note">This reflection has been submitted and locked. It cannot be edited.</p>
+                  )}
+                </div>
+
+                <form className="reflection-form" onSubmit={handleSubmitReflection} data-testid="reflection-form">
+                  {error && <div className="error-message" data-testid="reflection-error">{error}</div>}
+
+                  <div className="questions-section">
+                    <h3 className="section-subheading">Performance & Progress</h3>
+                    {QUESTIONS.filter(q => q.section === 'performance').map(question => (
+                      <RatingCommentInput
+                        key={question.id}
+                        question={question}
+                        value={formData[question.id]}
+                        onChange={(val) => setFormData({ ...formData, [question.id]: val })}
+                        disabled={isViewingLocked}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="questions-section">
+                    <h3 className="section-subheading">Wellbeing & Support</h3>
+                    {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
+                      <RatingCommentInput
+                        key={question.id}
+                        question={question}
+                        value={formData[question.id]}
+                        onChange={(val) => setFormData({ ...formData, [question.id]: val })}
+                        disabled={isViewingLocked}
+                      />
+                    ))}
+                  </div>
+
+                  {!isViewingLocked && (
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setSelectedWeek(null)}
+                        data-testid="cancel-button"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn-primary"
+                        disabled={loading}
+                        data-testid="submit-reflection-button"
+                      >
+                        {loading ? 'Submitting...' : 'Submit Reflection'}
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
+            </section>
+          )}
+        </main>
+
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     );
   }
 
-  return (
-    <div className="tab-content fade-in-3">
-      <h3>Submissions This Week</h3>
-      <div className="team-members-grid">
-        {data.map(item => {
-          const member = item.member;
-          const submission = item.submission;
-          const memberFlags = flags.filter(f => f.member_id === member._id);
+  // MANAGER VIEW
+  if (view === 'manager') {
+    return (
+      <div className="app-shell">
+        <header className="app-header">
+          <div className="header-content">
+            <h1 className="header-title" data-testid="app-title">PerformOS</h1>
+            <div className="header-right">
+              <Avatar name={user.name} size={36} />
+              <div className="user-info">
+                <div className="user-name" data-testid="user-name">{user.name}</div>
+                <div className="user-role">{user.title || 'Manager'}</div>
+              </div>
+              <button className="btn-secondary btn-sm" onClick={handleLogout} data-testid="logout-button">Sign out</button>
+            </div>
+          </div>
+        </header>
 
-          return (
-            <div 
-              key={member._id} 
-              className="member-card"
-              onClick={() => submission && onMemberClick(member, submission)}
-              style={{ cursor: submission ? 'pointer' : 'default' }}
-            >
-              <div className="member-header">
-                <Avatar name={member.name} size={52} />
-                <div className="member-info">
-                  <div className="member-name">{member.name}</div>
-                  <div className="member-title">{member.title}</div>
+        <main className="main-content">
+          <section className="hero-section">
+            <h2 className="section-title" data-testid="manager-title">Team Dashboard</h2>
+            <p className="section-subtitle">Monitor team health, track one-on-ones, and address psychological safety signals.</p>
+          </section>
+
+          <section className="content-section dark">
+            <div className="content-container">
+              <div className="kpi-grid">
+                <div className="kpi-card">
+                  <div className="kpi-label">This Week's Submissions</div>
+                  <div className="kpi-value" data-testid="kpi-submissions">{dashboardStats?.this_week_submissions || 0} / {dashboardStats?.total_team_members || 0}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Total Completed</div>
+                  <div className="kpi-value" data-testid="kpi-completed">{dashboardStats?.total_submissions || 0}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Team Health Score</div>
+                  <div className="kpi-value" data-testid="kpi-health-score">{dashboardStats?.team_health_score || 0}%</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Active Flags</div>
+                  <div className="kpi-value" style={{ color: flags.length > 0 ? '#F59E0B' : '#22C55E' }} data-testid="kpi-flags">{flags.length}</div>
                 </div>
               </div>
+            </div>
+          </section>
 
-              <div className="member-badges">
-                {submission ? (
-                  <>
-                    <div className="badge submitted">Submitted</div>
-                    {memberFlags.length > 0 && (
-                      <div className="badge flag">{memberFlags.length} flag{memberFlags.length !== 1 ? 's' : ''}</div>
-                    )}
-                  </>
-                ) : (
-                  <div className="badge not-submitted">Not submitted</div>
-                )}
+          <section className="content-section light">
+            <div className="content-container">
+              <div className="tabs" data-testid="manager-tabs">
+                <button
+                  className={`tab ${managerTab === 'schedule' ? 'active' : ''}`}
+                  onClick={() => setManagerTab('schedule')}
+                  data-testid="tab-schedule"
+                >
+                  Schedule
+                </button>
+                <button
+                  className={`tab ${managerTab === 'team_health' ? 'active' : ''}`}
+                  onClick={() => setManagerTab('team_health')}
+                  data-testid="tab-team-health"
+                >
+                  Team Health
+                  {flags.length > 0 && <span className="tab-badge">{flags.length}</span>}
+                </button>
+                <button
+                  className={`tab ${managerTab === 'performance' ? 'active' : ''}`}
+                  onClick={() => setManagerTab('performance')}
+                  data-testid="tab-performance"
+                >
+                  Performance Trends
+                </button>
               </div>
 
-              {submission && (
-                <div className="score-chips">
-                  {['feeling_about_work', 'safe_to_raise_concerns', 'workload_manageable'].map(key => {
-                    const response = submission.responses[key];
-                    if (!response) return null;
-                    const rating = response.rating;
-                    const color = rating >= 4 ? 'green' : rating === 3 ? 'teal' : 'amber';
-                    return <div key={key} className={`score-chip ${color}`}>{rating}</div>;
-                  })}
+              {managerTab === 'schedule' && (
+                <div className="tab-content" data-testid="schedule-content">
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Team Member</th>
+                          <th>Title</th>
+                          <th>This Week</th>
+                          <th>Recent Trends</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {members.map(member => {
+                          const memberSubmissions = allSubmissions.filter(s => s.member_id === member._id);
+                          const healthStatus = getHealthStatus(memberSubmissions);
+                          return (
+                            <tr key={member._id} data-testid={`member-row-${member._id}`}>
+                              <td>
+                                <div className="member-cell">
+                                  <Avatar name={member.name} size={40} healthStatus={healthStatus} />
+                                  <span className="member-name">{member.name}</span>
+                                </div>
+                              </td>
+                              <td>{member.title}</td>
+                              <td>
+                                {memberSubmissions.find(s => s.date === CURRENT_WEEK) ? (
+                                  <span className="status-badge submitted" data-testid="status-submitted">Submitted</span>
+                                ) : (
+                                  <span className="status-badge pending" data-testid="status-pending">Pending</span>
+                                )}
+                              </td>
+                              <td>
+                                <Sparkline data={calculateTrends(memberSubmissions, 'feeling_about_work')} />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {managerTab === 'team_health' && (
+                <div className="tab-content" data-testid="team-health-content">
+                  <div className="section-header">
+                    <h3 className="section-heading">Active Signals</h3>
+                    <p className="section-description">Psychological safety and wellbeing signals detected across your team.</p>
+                  </div>
+
+                  {flags.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No active signals detected. Your team appears to be doing well.</p>
+                    </div>
+                  ) : (
+                    <div className="flags-list">
+                      {flags.map(flag => {
+                        const member = members.find(m => m._id === flag.member_id);
+                        return (
+                          <div key={flag._id} className="flag-card" data-testid={`flag-${flag._id}`}>
+                            <div className="flag-header">
+                              <div className="flag-member">
+                                {member && <Avatar name={member.name} size={32} />}
+                                <div className="flag-member-info">
+                                  <div className="flag-member-name">{member?.name || 'Unknown'}</div>
+                                  <div className="flag-date">{formatDate(flag.date)}</div>
+                                </div>
+                              </div>
+                              <span className={`severity-badge ${flag.severity}`} data-testid="flag-severity">
+                                {flag.severity === 'action_required' ? 'Action Required' : flag.severity === 'concern' ? 'Concern' : 'Watch'}
+                              </span>
+                            </div>
+                            <div className="flag-body">
+                              <div className="flag-category">{flag.category.replace('_', ' ')}</div>
+                              <div className="flag-signal">{flag.signal}</div>
+                              {flag.comment_snippet && (
+                                <div className="flag-quote" data-testid="flag-quote">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
+                                  </svg>
+                                  "{flag.comment_snippet}"
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {managerTab === 'performance' && (
+                <div className="tab-content" data-testid="performance-content">
+                  <div className="section-header">
+                    <h3 className="section-heading">Team Performance Trends</h3>
+                    <p className="section-description">Monitor confidence and progress across your team.</p>
+                  </div>
+
+                  <div className="performance-grid">
+                    {members.map(member => {
+                      const memberSubmissions = allSubmissions.filter(s => s.member_id === member._id);
+                      return (
+                        <div key={member._id} className="performance-card" data-testid={`performance-${member._id}`}>
+                          <div className="performance-header">
+                            <Avatar name={member.name} size={36} />
+                            <div className="performance-member-info">
+                              <div className="performance-member-name">{member.name}</div>
+                              <div className="performance-member-title">{member.title}</div>
+                            </div>
+                          </div>
+                          <div className="performance-metrics">
+                            <div className="metric-row">
+                              <span className="metric-label">Target Confidence</span>
+                              <Sparkline data={calculateTrends(memberSubmissions, 'target_confidence')} />
+                            </div>
+                            <div className="metric-row">
+                              <span className="metric-label">Wellbeing</span>
+                              <Sparkline data={calculateTrends(memberSubmissions, 'feeling_about_work')} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+          </section>
+        </main>
 
-// TEAM HEALTH TAB
-function TeamHealthTab({ flags, members }) {
-  const getCategoryIcon = (cat) => {
-    const icons = {
-      wellbeing: '♡',
-      psychological_safety: '🛡',
-      workload: '⚡',
-      engagement: '◎',
-      team_dynamics: '👥',
-      manager_gap: '⏰',
-      performance_confidence: '📊'
-    };
-    return icons[cat] || '•';
-  };
-
-  const getCategoryLabel = (cat) => {
-    const labels = {
-      wellbeing: 'Wellbeing',
-      psychological_safety: 'Psych Safety',
-      workload: 'Workload',
-      engagement: 'Engagement',
-      team_dynamics: 'Team Dynamics',
-      manager_gap: 'Manager Gap',
-      performance_confidence: 'Performance'
-    };
-    return labels[cat] || cat;
-  };
-
-  const getMemberName = (memberId) => {
-    const member = members.find(m => m._id === memberId);
-    return member ? member.name : 'Unknown';
-  };
-
-  if (flags.length === 0) {
-    return (
-      <div className="tab-content">
-        <div className="empty-state">
-          <div className="empty-icon">✓</div>
-          <h3>No active risk flags</h3>
-          <p>Your team is in a healthy place</p>
-        </div>
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     );
   }
 
-  return (
-    <div className="tab-content fade-in-3">
-      <h3>Active Flags ({flags.length})</h3>
-      <div className="flags-grid">
-        {flags.map(flag => (
-          <div key={flag._id} className={`flag-card ${flag.severity.replace('_', '-')}`}>
-            <div className="flag-header">
-              <div className="flag-member">{getMemberName(flag.member_id)}</div>
-              <div className={`flag-severity ${flag.severity.replace('_', '-')}`}>
-                {flag.severity.replace('_', ' ')}
-              </div>
-            </div>
-            <div className="flag-category">
-              <span>{getCategoryIcon(flag.category)}</span>
-              <span>{getCategoryLabel(flag.category)}</span>
-            </div>
-            <div className="flag-signal">{flag.signal}</div>
-            {flag.comment_snippet && (
-              <div className="flag-comment-snippet">{flag.comment_snippet}</div>
-            )}
-            <div className="flag-date">Detected {formatDateShort(flag.date)}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// MANAGER SUBMISSION DETAIL
-function ManagerSubmissionDetail({ member, submission, flags, onBack }) {
-  const performanceQs = QUESTIONS.filter(q => q.section === 'performance');
-  const wellbeingQs = QUESTIONS.filter(q => q.section === 'wellbeing');
-
-  return (
-    <div className="dashboard-container">
-      <nav className="navbar">
-        <div className="nav-content">
-          <div className="nav-left">
-            <div className="logo-small">P</div>
-            <span className="nav-title">{member.name}'s Reflection</span>
-          </div>
-        </div>
-      </nav>
-
-      <div className="dashboard-content">
-        <button onClick={onBack} className="back-btn">← Back to dashboard</button>
-
-        <div className="submission-display">
-          <div className="submission-header">
-            <Avatar name={member.name} size={56} />
-            <div className="submission-info">
-              <h2>{member.name}</h2>
-              <div className="submission-meta">{member.title} · Week of {formatDateShort(submission.date)}</div>
-            </div>
-          </div>
-
-          {flags.length > 0 && (
-            <div className="tab-content" style={{ background: 'rgba(245, 158, 11, 0.05)', borderColor: '#F59E0B' }}>
-              <h3>⚠️ Active Flags ({flags.length})</h3>
-              <div style={{ fontSize: '14px', color: 'var(--gray-600)' }}>
-                {flags.map((f, i) => (
-                  <div key={i} style={{ marginBottom: '6px' }}>• {f.signal}</div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="tab-content" style={{ marginTop: '20px' }}>
-            <h3>Performance Reflection</h3>
-            {performanceQs.map(q => (
-              <RatingCommentDisplay
-                key={q.id}
-                question={q}
-                response={submission.responses[q.id]}
-              />
-            ))}
-          </div>
-
-          <div className="tab-content" style={{ marginTop: '20px' }}>
-            <h3>Wellbeing & Safety</h3>
-            {wellbeingQs.map(q => (
-              <RatingCommentDisplay
-                key={q.id}
-                question={q}
-                response={submission.responses[q.id]}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 export default App;

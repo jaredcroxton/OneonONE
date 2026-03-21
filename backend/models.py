@@ -91,6 +91,7 @@ class SubmissionBase(BaseModel):
     date: str  # Monday date (YYYY-MM-DD)
     responses: WeeklyReflection
     submitted_at: Optional[str] = None
+    locked: Optional[str] = None  # Timestamp when submission was locked
 
 class SubmissionCreate(SubmissionBase):
     pass

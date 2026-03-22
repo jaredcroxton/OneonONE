@@ -86,9 +86,10 @@ async def startup_event():
         await seed_database()
 
 
-@app.get("/")
-async def root():
-    return {"message": "PerformOS One-on-One Builder V2 API", "status": "running", "current_week": CURRENT_WEEK}
+# Root API endpoint moved - now served by React catch-all
+# @app.get("/")
+# async def root():
+#     return {"message": "PerformOS One-on-One Builder V2 API", "status": "running", "current_week": CURRENT_WEEK}
 
 
 # ============================================================
@@ -520,6 +521,42 @@ async def generate_exec_summary(payload: dict):
             return response.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate executive summary: {str(e)}")
+
+
+# ============================================================
+# STATIC FILE SERVING - Serve React frontend
+# ============================================================
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+# Mount static assets (JS, CSS, images)
+frontend_build_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
+static_path = os.path.join(frontend_build_path, "static")
+
+if os.path.exists(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+# Mount assets folder if it exists
+assets_path = os.path.join(frontend_build_path, "assets")
+if os.path.exists(assets_path):
+    app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+# Catch-all route for React Router - MUST BE LAST
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    """Serve React app for all non-API routes"""
+    # If the path exists as a file in build folder, serve it
+    file_path = os.path.join(frontend_build_path, full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    # Otherwise serve index.html (for React Router)
+    index_path = os.path.join(frontend_build_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    
+    raise HTTPException(status_code=404, detail="Frontend not built")
 
 
 if __name__ == "__main__":

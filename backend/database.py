@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_URL = os.getenv("MONGO_URL")
+MONGO_URL = os.getenv("MONGODB_URI")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client.performos_one_on_one_v2

@@ -465,6 +465,11 @@ async def generate_coaching(payload: dict):
     """Generate AI coaching for manager using OpenAI API"""
     import httpx
     
+    # Get OpenAI API key from environment
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    
     # Call OpenAI API
     try:
         async with httpx.AsyncClient() as client:
@@ -472,7 +477,7 @@ async def generate_coaching(payload: dict):
                 "https://api.openai.com/v1/chat/completions",
                 headers={
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer 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"
+                    "Authorization": f"Bearer {openai_api_key}"
                 },
                 json={
                     "model": "gpt-4-turbo-preview",
@@ -497,13 +502,18 @@ async def generate_exec_summary(payload: dict):
     """Generate AI executive summary using OpenAI API"""
     import httpx
     
+    # Get OpenAI API key from environment
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+    
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer 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"
+                    "Authorization": f"Bearer {openai_api_key}"
                 },
                 json={
                     "model": "gpt-4-turbo-preview",

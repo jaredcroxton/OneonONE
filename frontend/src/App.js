@@ -741,7 +741,7 @@ RULES:
 - If someone is doing well, say so.`;
 
       // Call OpenAI API (using provided key)
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

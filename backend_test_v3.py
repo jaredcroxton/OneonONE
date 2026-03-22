@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 
 class PerformOSV3APITester:
-    def __init__(self, base_url="https://team-health-hub-2.preview.emergentagent.com"):
+    def __init__(self, base_url="https://exact-port.preview.emergentagent.com"):
         self.base_url = base_url
         self.manager_token = None
         self.team_member_token = None

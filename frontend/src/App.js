@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
 
-const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
+const API_BASE = process.env.REACT_APP_BACKEND_URL;
+if (!API_BASE) console.error('Missing REACT_APP_BACKEND_URL');
 const CURRENT_WEEK = '2026-03-23';
 
 // Utility functions

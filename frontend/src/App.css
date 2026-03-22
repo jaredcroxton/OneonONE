@@ -1695,6 +1695,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .action-item {
   display: flex;
+  align-items: center;
   gap: 1rem;
   padding: 1rem;
   background: rgba(11, 18, 32, 0.02);
@@ -1702,8 +1703,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .urgency-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  min-width: 80px;
+  min-height: 40px;
+  border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -2812,13 +2818,7 @@ h1, h2, h3, h4, h5, h6 {
   flex: 1;
 }
 
-.urgency-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
+/* Duplicate urgency-badge removed - using main definition above */
 
 .urgency-immediate {
   background: #EF4444;

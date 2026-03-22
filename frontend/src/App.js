@@ -740,19 +740,14 @@ RULES:
 - Recognition highlights genuine contributions. Max 3.
 - If someone is doing well, say so.`;
 
-      // Call OpenAI API (using provided key)
-    
+      // Call OpenAI API via backend
+      const response = await fetch(`${API_BASE}/api/generate-coaching`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer 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'
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          model: 'gpt-4-turbo-preview',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 2000,
-          temperature: 0.7
-        })
+        body: JSON.stringify({ prompt })
       });
 
       if (!response.ok) {

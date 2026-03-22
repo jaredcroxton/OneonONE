@@ -858,7 +858,7 @@ RULES:
 - Maximum 3 strengths, 3 gaps, 3 overdue actions, 2 skill building items.`;
 
       // Call OpenAI API via backend
-      const response = await fetch(`${API_BASE}/api/generate-coaching`, {
+      const response = await fetch(`${API_BASE}/api/generate-exec-summary`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -868,7 +868,7 @@ RULES:
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate coaching');
+        throw new Error('Failed to generate briefing');
       }
 
       const data = await response.json();

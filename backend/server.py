@@ -23,12 +23,15 @@ JWT_SECRET = os.getenv("JWT_SECRET", "performos_jwt_secret_key")
 ALGORITHM = "HS256"
 CURRENT_WEEK = "2026-03-23"  # The "THIS WEEK" for demo purposes
 
+# Get allowed origins from environment or use defaults
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://performos.digital,http://localhost:3000").split(",")
+
 app = FastAPI(title="PerformOS One-on-One Builder V2 API")
 
-# CORS middleware
+# CORS middleware - configured for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -537,4 +540,5 @@ async def generate_exec_summary(payload: dict):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)

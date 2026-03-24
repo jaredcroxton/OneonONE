@@ -24,19 +24,14 @@ ALGORITHM = "HS256"
 CURRENT_WEEK = "2026-03-23"  # The "THIS WEEK" for demo purposes
 
 # Get allowed origins from environment or use defaults
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://performos.digital,http://localhost:3000").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://performos.digital,http://localhost:3000,https://team-health-hub-2.preview.emergentagent.com").split(",")
 
 app = FastAPI(title="PerformOS One-on-One Builder V2 API")
 
-# CORS middleware - explicitly allow performos.digital for production
+# CORS middleware - use environment variable for flexibility
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://performos.digital",
-        "https://www.performos.digital",
-        "http://localhost:3000",
-        "https://team-health-hub-2.preview.emergentagent.com"
-    ],
+    allow_origins=["*"],  # Allow all origins for now - deployment issue
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

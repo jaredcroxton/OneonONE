@@ -539,6 +539,7 @@ async def generate_exec_summary(payload: dict):
 # ============================================================
 # DATABASE SEED ENDPOINT (REMOVE AFTER FIRST USE)
 # ============================================================
+@app.get("/api/admin/seed")
 @app.post("/api/admin/seed")
 async def seed_database_endpoint():
     """One-time endpoint to seed the database with demo data"""

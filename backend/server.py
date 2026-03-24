@@ -82,11 +82,26 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and seed data"""
-    await init_db()
-    # Check if database is empty and seed if needed
-    user_count = await users_collection.count_documents({})
-    if user_count == 0:
-        await seed_database()
+    try:
+        print("🚀 Starting PerformOS backend...")
+        await init_db()
+        print("✅ Database indexes created")
+        
+        # Check if database is empty and seed if needed
+        user_count = await users_collection.count_documents({})
+        print(f"📊 Found {user_count} users in database")
+        
+        if user_count == 0:
+            print("🌱 Database empty - seeding with demo data...")
+            await seed_database()
+            print("✅ Database seeded successfully!")
+        else:
+            print(f"✅ Database already initialized with {user_count} users")
+    except Exception as e:
+        print(f"❌ STARTUP ERROR: {str(e)}")
+        # Don't crash - let app start anyway
+        import traceback
+        traceback.print_exc()
 
 
 # Root API endpoint moved - now served by React catch-all

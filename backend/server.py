@@ -28,10 +28,15 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://performos.digital,http:/
 
 app = FastAPI(title="PerformOS One-on-One Builder V2 API")
 
-# CORS middleware - configured for production
+# CORS middleware - explicitly allow performos.digital for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS != ["*"] else ["*"],
+    allow_origins=[
+        "https://performos.digital",
+        "https://www.performos.digital",
+        "http://localhost:3000",
+        "https://team-health-hub-2.preview.emergentagent.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

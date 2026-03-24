@@ -540,6 +540,20 @@ async def generate_exec_summary(payload: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate executive summary: {str(e)}")
 
+
+# ============================================================
+# DATABASE SEED ENDPOINT (REMOVE AFTER FIRST USE)
+# ============================================================
+@app.post("/api/admin/seed")
+async def seed_database_endpoint():
+    """One-time endpoint to seed the database with demo data"""
+    try:
+        from seed_data import seed_database
+        await seed_database()
+        return {"message": "✅ Database seeded successfully with demo users", "users": ["rachel@performos.io", "alex@performos.io", "ashley@performos.io"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Seed failed: {str(e)}")
+
 # Static files now served by separate frontend process on port 3000
 
 

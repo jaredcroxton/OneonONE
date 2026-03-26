@@ -381,6 +381,14 @@ function App() {
   const [coaching, setCoaching] = useState(null);
   const [coachingLoading, setCoachingLoading] = useState(false);
   
+  // Flag Action Tracking State
+  const [selectedFlag, setSelectedFlag] = useState(null);
+  const [actionFormData, setActionFormData] = useState({
+    date: '',
+    note: '',
+    confirmed: false
+  });
+  
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [execTab, setExecTab] = useState('org_overview');
@@ -604,6 +612,104 @@ function App() {
     if (avgWellbeing >= 4) return 'good';
     if (avgWellbeing >= 3) return 'caution';
     return 'risk';
+  };
+
+  // Flag Action Tracking Functions
+  const handleFlagClick = (flag) => {
+    setSelectedFlag(flag);
+    setActionFormData({ date: '', note: '', confirmed: false });
+  };
+
+  const closeFlagModal = () => {
+    setSelectedFlag(null);
+    setActionFormData({ date: '', note: '', confirmed: false });
+  };
+
+  const handleAddAction = async (e) => {
+    e.preventDefault();
+    if (!actionFormData.date || !actionFormData.note || !actionFormData.confirmed) {
+      showToast('Please fill in all fields and confirm the action', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await apiCall(`/api/flags/${selectedFlag._id}/actions`, {
+        method: 'POST',
+        body: JSON.stringify({
+          date: actionFormData.date,
+          note: actionFormData.note,
+          confirmed: actionFormData.confirmed
+        })
+      });
+
+      showToast('Action logged successfully', 'success');
+      
+      // Reload flags to get updated data
+      const updatedFlags = await apiCall('/api/flags?status_filter=open');
+      setFlags(updatedFlags || []);
+      
+      // Update the selected flag with fresh data
+      const updatedFlag = updatedFlags.find(f => f._id === selectedFlag._id);
+      if (updatedFlag) {
+        setSelectedFlag(updatedFlag);
+      }
+      
+      // Reset form
+      setActionFormData({ date: '', note: '', confirmed: false });
+    } catch (err) {
+      showToast(err.message || 'Failed to log action', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateFlagStatus = async (newStatus) => {
+    // Prevent resolving without actions
+    if (newStatus === 'resolved' && (!selectedFlag.actions || selectedFlag.actions.length === 0)) {
+      showToast('Cannot resolve a flag without logging at least one action', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (newStatus === 'resolved') {
+        await apiCall(`/api/flags/${selectedFlag._id}/resolve`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            note: 'Flag resolved'
+          })
+        });
+      } else {
+        await apiCall(`/api/flags/${selectedFlag._id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: newStatus
+          })
+        });
+      }
+
+      showToast(`Flag status updated to ${newStatus}`, 'success');
+      
+      // Reload flags
+      const updatedFlags = await apiCall('/api/flags?status_filter=open');
+      setFlags(updatedFlags || []);
+      
+      // Close modal if resolved
+      if (newStatus === 'resolved') {
+        closeFlagModal();
+      } else {
+        // Update selected flag
+        const updatedFlag = updatedFlags.find(f => f._id === selectedFlag._id);
+        if (updatedFlag) {
+          setSelectedFlag(updatedFlag);
+        }
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to update flag status', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Simulated org-wide team data for executive view
@@ -1600,11 +1706,12 @@ RULES:
                     <div className="flags-list">
                       {flags.map(flag => {
                         const member = members.find(m => m._id === flag.member_id);
+                        const actionCount = flag.actions?.length || 0;
                         return (
                           <button
                             key={flag._id}
                             className="flag-card clickable-flag"
-                            onClick={() => setHealthDetailMember(member)}
+                            onClick={() => handleFlagClick(flag)}
                             data-testid={`flag-${flag._id}`}
                           >
                             <div className="flag-header">
@@ -1615,9 +1722,16 @@ RULES:
                                   <div className="flag-date">{formatDate(flag.date)}</div>
                                 </div>
                               </div>
-                              <span className={`severity-badge ${flag.severity}`} data-testid="flag-severity">
-                                {flag.severity === 'action_required' ? 'Action Required' : flag.severity === 'concern' ? 'Concern' : 'Watch'}
-                              </span>
+                              <div className="flag-header-badges">
+                                <span className={`severity-badge ${flag.severity}`} data-testid="flag-severity">
+                                  {flag.severity === 'action_required' ? 'Action Required' : flag.severity === 'concern' ? 'Concern' : 'Watch'}
+                                </span>
+                                {actionCount > 0 && (
+                                  <span className="action-count-badge" data-testid="action-count-badge">
+                                    {actionCount} {actionCount === 1 ? 'action' : 'actions'}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="flag-body">
                               <div className="flag-category">{flag.category.replace('_', ' ')}</div>
@@ -2432,6 +2546,187 @@ RULES:
             </div>
           </section>
         </main>
+
+        {/* Flag Management Modal */}
+        {selectedFlag && (
+          <div className="modal-overlay" onClick={closeFlagModal} data-testid="flag-modal-overlay">
+            <div className="modal-content flag-modal" onClick={(e) => e.stopPropagation()} data-testid="flag-modal">
+              <div className="modal-header">
+                <h2 className="modal-title">Flag Management</h2>
+                <button className="modal-close" onClick={closeFlagModal} data-testid="close-flag-modal">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div className="modal-body">
+                {/* Flag Details */}
+                <div className="flag-detail-section">
+                  <div className="flag-detail-header">
+                    <div className="flag-detail-member">
+                      {members.find(m => m._id === selectedFlag.member_id) && (
+                        <Avatar name={members.find(m => m._id === selectedFlag.member_id).name} size={40} />
+                      )}
+                      <div>
+                        <div className="flag-detail-name">{members.find(m => m._id === selectedFlag.member_id)?.name || 'Unknown'}</div>
+                        <div className="flag-detail-date">{formatDate(selectedFlag.date)}</div>
+                      </div>
+                    </div>
+                    <div className="flag-detail-badges">
+                      <span className={`severity-badge ${selectedFlag.severity}`}>
+                        {selectedFlag.severity === 'action_required' ? 'Action Required' : 'Concern'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flag-detail-category">{selectedFlag.category.replace('_', ' ')}</div>
+                  <div className="flag-detail-signal">{selectedFlag.signal}</div>
+                  {selectedFlag.comment_snippet && (
+                    <div className="flag-detail-quote">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
+                      </svg>
+                      "{selectedFlag.comment_snippet}"
+                    </div>
+                  )}
+                </div>
+
+                {/* Status Management */}
+                <div className="flag-status-section">
+                  <label className="flag-status-label">Flag Status</label>
+                  <div className="flag-status-buttons">
+                    <button
+                      className={`status-button ${selectedFlag.status === 'open' ? 'active' : ''}`}
+                      onClick={() => handleUpdateFlagStatus('open')}
+                      disabled={selectedFlag.status === 'open' || loading}
+                      data-testid="status-open"
+                    >
+                      Open
+                    </button>
+                    <button
+                      className={`status-button ${selectedFlag.status === 'in_progress' ? 'active' : ''}`}
+                      onClick={() => handleUpdateFlagStatus('in_progress')}
+                      disabled={selectedFlag.status === 'in_progress' || loading}
+                      data-testid="status-in-progress"
+                    >
+                      In Progress
+                    </button>
+                    <button
+                      className={`status-button ${selectedFlag.status === 'resolved' ? 'active' : ''}`}
+                      onClick={() => handleUpdateFlagStatus('resolved')}
+                      disabled={selectedFlag.status === 'resolved' || loading || (!selectedFlag.actions || selectedFlag.actions.length === 0)}
+                      data-testid="status-resolved"
+                      title={(!selectedFlag.actions || selectedFlag.actions.length === 0) ? 'Cannot resolve without at least one action' : ''}
+                    >
+                      Resolved
+                    </button>
+                  </div>
+                  {(!selectedFlag.actions || selectedFlag.actions.length === 0) && (
+                    <div className="flag-status-note">
+                      ⚠️ You must log at least one action before resolving this flag
+                    </div>
+                  )}
+                </div>
+
+                {/* Action History */}
+                <div className="action-history-section">
+                  <h3 className="section-subtitle">Action History ({selectedFlag.actions?.length || 0})</h3>
+                  {selectedFlag.actions && selectedFlag.actions.length > 0 ? (
+                    <div className="action-history-list" data-testid="action-history-list">
+                      {selectedFlag.actions
+                        .sort((a, b) => new Date(b.actionedAt) - new Date(a.actionedAt))
+                        .map((action) => (
+                        <div key={action.id} className="action-history-item" data-testid={`action-item-${action.id}`}>
+                          <div className="action-history-header">
+                            <div className="action-confirmed-badge">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                              </svg>
+                              Confirmed
+                            </div>
+                            <div className="action-date">{formatDate(action.date)}</div>
+                          </div>
+                          <div className="action-note">{action.note}</div>
+                          <div className="action-timestamp">
+                            Logged {new Date(action.actionedAt).toLocaleString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="action-history-empty">
+                      No actions logged yet. Add the first action below to start tracking your response.
+                    </div>
+                  )}
+                </div>
+
+                {/* Add New Action Form */}
+                <div className="add-action-section">
+                  <h3 className="section-subtitle">Add New Action</h3>
+                  <form onSubmit={handleAddAction} data-testid="add-action-form">
+                    <div className="form-group">
+                      <label htmlFor="action-date">Action Date</label>
+                      <input
+                        id="action-date"
+                        type="date"
+                        className="form-input"
+                        value={actionFormData.date}
+                        onChange={(e) => setActionFormData({ ...actionFormData, date: e.target.value })}
+                        max={new Date().toISOString().split('T')[0]}
+                        required
+                        data-testid="action-date-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="action-note">What action did you take?</label>
+                      <textarea
+                        id="action-note"
+                        className="form-textarea"
+                        placeholder="Describe the specific action taken..."
+                        value={actionFormData.note}
+                        onChange={(e) => setActionFormData({ ...actionFormData, note: e.target.value })}
+                        rows="3"
+                        required
+                        data-testid="action-note-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={actionFormData.confirmed}
+                          onChange={(e) => setActionFormData({ ...actionFormData, confirmed: e.target.checked })}
+                          required
+                          data-testid="action-confirm-checkbox"
+                        />
+                        <span>I confirm this action has been completed</span>
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={!actionFormData.date || !actionFormData.note || !actionFormData.confirmed || loading}
+                      data-testid="log-action-button"
+                    >
+                      {loading ? 'Logging Action...' : 'Log Action'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>

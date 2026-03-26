@@ -3064,3 +3064,404 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
 }
 
+
+
+/* FLAG ACTION TRACKING STYLES */
+
+/* Action Count Badge */
+.action-count-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.15);
+  color: var(--accent-teal);
+  white-space: nowrap;
+}
+
+.flag-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Content */
+.modal-content {
+  background: var(--surface-light);
+  border-radius: var(--radius-card);
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.flag-modal {
+  color: var(--text-on-light);
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text-on-light-muted);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-on-light);
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Flag Detail Section */
+.flag-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--surface-light-2);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-light);
+}
+
+.flag-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.flag-detail-member {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.flag-detail-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.flag-detail-date {
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+}
+
+.flag-detail-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.flag-detail-category {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-blue);
+}
+
+.flag-detail-signal {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.5;
+}
+
+.flag-detail-quote {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-left: 3px solid var(--accent-teal);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-on-light-muted);
+  font-style: italic;
+}
+
+.flag-detail-quote svg {
+  flex-shrink: 0;
+  color: var(--accent-teal);
+  margin-top: 0.125rem;
+}
+
+/* Status Section */
+.flag-status-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.flag-status-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.flag-status-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.status-button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-on-light-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-button:hover:not(:disabled) {
+  border-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+
+.status-button.active {
+  background: var(--accent-teal);
+  border-color: var(--accent-teal);
+  color: white;
+}
+
+.status-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.flag-status-note {
+  font-size: 0.875rem;
+  color: var(--caution-amber);
+  background: var(--caution-amber-bg);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Action History Section */
+.action-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.action-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.action-history-item {
+  padding: 1.25rem;
+  background: var(--surface-light-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.action-confirmed-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--accent-green);
+  border-radius: 999px;
+}
+
+.action-confirmed-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.action-date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.action-note {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.5;
+}
+
+.action-timestamp {
+  font-size: 0.8125rem;
+  color: var(--text-on-light-muted);
+}
+
+.action-history-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-on-light-muted);
+  background: var(--surface-light-2);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+}
+
+/* Add Action Section */
+.add-action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--surface-light-2);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-light);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.form-input,
+.form-textarea {
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-control);
+  background: white;
+  color: var(--text-on-light);
+  font-family: var(--font-sans);
+  transition: all 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent-teal);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-on-light);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--accent-teal);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 1rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .flag-status-buttons {
+    flex-direction: column;
+  }
+
+  .status-button {
+    width: 100%;
+  }
+}

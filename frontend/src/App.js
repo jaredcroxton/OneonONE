@@ -388,6 +388,7 @@ function App() {
     confirmed: false
   });
   const [selectedWeekHistory, setSelectedWeekHistory] = useState(null);
+  const [weeklyHistory, setWeeklyHistory] = useState([]);
   
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -614,8 +615,53 @@ function App() {
     return 'risk';
   };
 
+  // Weekly Action History Functions
+  const getWeeklyHistory = () => {
+    const weeks = [];
+    const today = new Date();
+    
+    // Generate 8 weeks of history
+    for (let i = 0; i < 8; i++) {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - (today.getDay() || 7) + 1 - (i * 7)); // Monday of week
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      // Collect all actions from this week across all flags
+      const weekActions = [];
+      flags.forEach(flag => {
+        const member = members.find(m => m._id === flag.member_id);
+        if (flag.actions && flag.actions.length > 0) {
+          flag.actions.forEach(action => {
+            const actionDate = new Date(action.savedAt);
+            if (actionDate >= weekStart && actionDate <= weekEnd) {
+              weekActions.push({
+                ...action,
+                flag,
+                member
+              });
+            }
+          });
+        }
+      });
+      
+      weeks.push({
+        weekStart,
+        weekEnd,
+        actions: weekActions.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)),
+        label: i === 0 ? 'This Week' : i === 1 ? 'Last Week' : `${i} Weeks Ago`
+      });
+    }
+    
+    return weeks;
+  };
+
   // Flag Action Tracking Functions
   const handleFlagClick = (flag) => {
+    console.log("Flag clicked:", flag._id, flag);
     setSelectedFlag(flag);
     setActionFormData({ note: '', confirmed: false });
   };
@@ -1749,6 +1795,112 @@ RULES:
                       })}
                     </div>
                   )}
+
+                  {/* Weekly Action History Section */}
+                  <div className="weekly-history-section" data-testid="weekly-action-history">
+                    <div className="section-header">
+                      <h3 className="section-heading">My Action History</h3>
+                      <p className="section-description">Actions taken on team member flags over the past 8 weeks</p>
+                    </div>
+
+                    <div className="week-cards-row">
+                      {getWeeklyHistory().map((week, index) => {
+                        const hasActions = week.actions.length > 0;
+                        const isSelected = selectedWeekHistory === index;
+                        return (
+                          <button
+                            key={index}
+                            className={`week-card ${hasActions ? 'has-actions' : 'no-actions'} ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedWeekHistory(isSelected ? null : index)}
+                            data-testid={`week-card-${index}`}
+                          >
+                            <div className="week-card-label">{week.label}</div>
+                            <div className="week-card-date">
+                              {week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                            <div className="week-card-count">
+                              {week.actions.length} {week.actions.length === 1 ? 'action' : 'actions'}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedWeekHistory !== null && (
+                      <div className="week-actions-panel" data-testid="week-actions-panel">
+                        <div className="week-panel-header">
+                          <h4 className="week-panel-title">
+                            {getWeeklyHistory()[selectedWeekHistory].label} — 
+                            {getWeeklyHistory()[selectedWeekHistory].weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to{' '}
+                            {getWeeklyHistory()[selectedWeekHistory].weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </h4>
+                          <button
+                            className="close-week-panel"
+                            onClick={() => setSelectedWeekHistory(null)}
+                            data-testid="close-week-panel"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+
+                        {getWeeklyHistory()[selectedWeekHistory].actions.length === 0 ? (
+                          <div className="week-panel-empty">
+                            No actions logged during this week
+                          </div>
+                        ) : (
+                          <div className="week-actions-list">
+                            {getWeeklyHistory()[selectedWeekHistory].actions.map((action, idx) => (
+                              <div key={idx} className="week-action-item" data-testid={`week-action-${idx}`}>
+                                <div className="week-action-header">
+                                  <div className="week-action-member">
+                                    <Avatar name={action.member?.name || 'Unknown'} size={32} />
+                                    <div>
+                                      <div className="week-action-member-name">{action.member?.name || 'Unknown'}</div>
+                                      <div className="week-action-category">
+                                        <span className="category-icon">
+                                          {action.flag.category === 'wellbeing' ? '💚' : 
+                                           action.flag.category === 'workload' ? '⚡' :
+                                           action.flag.category === 'psychological_safety' ? '🛡️' :
+                                           action.flag.category === 'team_dynamics' ? '👥' :
+                                           action.flag.category === 'manager_gap' ? '📋' :
+                                           action.flag.category === 'engagement' ? '🎯' : '🚩'}
+                                        </span>
+                                        {action.flag.category.replace('_', ' ')}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <span className={`severity-badge ${action.flag.severity}`}>
+                                    {action.flag.severity === 'action_required' ? 'Action Required' : 
+                                     action.flag.severity === 'concern' ? 'Concern' : 'Watch'}
+                                  </span>
+                                </div>
+                                <div className="week-action-note">{action.note}</div>
+                                <div className="week-action-footer">
+                                  <div className="week-action-confirmed">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    Confirmed
+                                  </div>
+                                  <div className="week-action-timestamp">
+                                    {new Date(action.savedAt).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -2547,6 +2699,7 @@ RULES:
         </main>
 
         {/* Flag Management Modal */}
+        {console.log("Modal render check - selectedFlag:", selectedFlag)}
         {selectedFlag && (
           <div className="modal-overlay" onClick={closeFlagModal} data-testid="flag-modal-overlay">
             <div className="modal-content flag-modal" onClick={(e) => e.stopPropagation()} data-testid="flag-modal">

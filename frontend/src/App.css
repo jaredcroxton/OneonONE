@@ -3094,7 +3094,7 @@ h1, h2, h3, h4, h5, h6 {
   bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3471,5 +3471,232 @@ h1, h2, h3, h4, h5, h6 {
 
   .status-button {
     width: 100%;
+  }
+}
+
+
+/* WEEKLY ACTION HISTORY */
+
+.weekly-history-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid var(--border-light);
+}
+
+.week-cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.week-card {
+  background: var(--surface-light-2);
+  border: 2px solid var(--border-light);
+  border-left: 4px solid var(--border-light);
+  border-radius: var(--radius-control);
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.week-card.has-actions {
+  border-left-color: var(--accent-green);
+}
+
+.week-card.no-actions {
+  border-left-color: var(--border-light);
+  opacity: 0.6;
+}
+
+.week-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent-teal);
+}
+
+.week-card.selected {
+  background: var(--accent-teal);
+  border-color: var(--accent-teal);
+  color: white;
+}
+
+.week-card-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.week-card.selected .week-card-label,
+.week-card.selected .week-card-date,
+.week-card.selected .week-card-count {
+  color: white;
+}
+
+.week-card-date {
+  font-size: 0.75rem;
+  color: var(--text-on-light-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.week-card-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-on-light);
+}
+
+/* Week Actions Panel */
+.week-actions-panel {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--surface-light-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.week-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.week-panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.close-week-panel {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text-on-light-muted);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.close-week-panel:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-on-light);
+}
+
+.week-panel-empty {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-on-light-muted);
+  font-size: 0.875rem;
+}
+
+.week-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.week-action-item {
+  padding: 1.25rem;
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.week-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.week-action-member {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.week-action-member-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.week-action-category {
+  font-size: 0.8125rem;
+  color: var(--text-on-light-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  text-transform: capitalize;
+}
+
+.category-icon {
+  font-size: 1rem;
+}
+
+.week-action-note {
+  font-size: 0.9375rem;
+  color: var(--text-on-light);
+  line-height: 1.5;
+  padding-left: 2.5rem;
+}
+
+.week-action-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 2.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-on-light-muted);
+}
+
+.week-action-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.week-action-confirmed svg {
+  width: 14px;
+  height: 14px;
+}
+
+.week-action-timestamp {
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .week-cards-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .week-action-note,
+  .week-action-footer {
+    padding-left: 0;
   }
 }

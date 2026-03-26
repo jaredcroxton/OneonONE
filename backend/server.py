@@ -2,10 +2,12 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 import os
 from dotenv import load_dotenv
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from database import init_db, users_collection, members_collection, submissions_collection, flags_collection
 from models import (
@@ -133,6 +135,74 @@ async def login(user_login: UserLogin):
         "token_type": "bearer",
         "user": user_data
     }
+
+
+
+@app.post("/api/auth/google/login")
+async def google_login(google_token: dict):
+    """
+    Authenticate user with Google ID token
+    Only allows existing users - no new registrations
+    """
+    try:
+        # Get Google client ID from environment
+        GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+        if not GOOGLE_CLIENT_ID:
+            raise HTTPException(status_code=500, detail="Google Client ID not configured")
+        
+        # Verify the Google ID token
+        token = google_token.get("token")
+        if not token:
+            raise HTTPException(status_code=400, detail="Google token required")
+        
+        try:
+            # Verify token with Google
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                GOOGLE_CLIENT_ID
+            )
+            
+            # Extract user email from Google token
+            email = idinfo.get("email")
+            if not email:
+                raise HTTPException(status_code=400, detail="Email not found in Google token")
+            
+        except ValueError as e:
+            # Invalid token
+            raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+        
+        # Look up user in database by email
+        user = await users_collection.find_one({"email": email})
+        
+        if not user:
+            # User doesn't exist - reject login
+            raise HTTPException(
+                status_code=403, 
+                detail="No account found. Please contact your administrator."
+            )
+        
+        # User exists - create JWT token same as regular login
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user["_id"]},
+            expires_delta=access_token_expires
+        )
+        
+        # Return same format as regular login
+        user_data = serialize_doc(user)
+        user_data.pop("hashed_password", None)
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Google login failed: {str(e)}")
 
 
 @app.get("/api/auth/me")

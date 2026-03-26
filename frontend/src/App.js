@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 if (!API_BASE) console.log('Using relative API paths for same-origin deployment');
 const CURRENT_WEEK = '2026-03-23';
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '1076094647421-u1bge3nkhmotrc1lganqm53e51dka88a.apps.googleusercontent.com';
 
 // Utility functions
 const getAvatarColor = (name) => {
@@ -478,6 +480,47 @@ function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Google Login Handler
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await apiCall('/api/auth/google/login', {
+        method: 'POST',
+        body: JSON.stringify({ token: credentialResponse.credential })
+      });
+      
+      if (response.access_token) {
+        localStorage.setItem('token', response.access_token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        setUser(response.user);
+        
+        // Set view based on role
+        if (response.user.role === 'manager') {
+          setView('manager');
+        } else if (response.user.role === 'executive') {
+          setView('executive');
+        } else {
+          setView('team_member');
+        }
+        
+        showToast(`Welcome back, ${response.user.name}!`, 'success');
+      } else {
+        setError('Google login failed');
+      }
+    } catch (err) {
+      console.error('Google login error:', err);
+      setError(err.message || 'Google login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google login was cancelled or failed');
   };
 
   const handleLogout = () => {
@@ -990,8 +1033,9 @@ RULES:
   // LOGIN VIEW
   if (view === 'login') {
     return (
-      <div className="app-shell">
-        <div className="login-split-screen">
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <div className="app-shell">
+          <div className="login-split-screen">
           <div className="login-brand-panel">
             <div className="brand-content">
               <img 
@@ -1040,6 +1084,23 @@ RULES:
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
+              
+              <div className="login-divider">
+                <span>OR</span>
+              </div>
+              
+              <div className="google-login-wrapper">
+                <GoogleLogin
+                  onSuccess={handleGoogleLogin}
+                  onError={handleGoogleError}
+                  text="signin_with"
+                  shape="rectangular"
+                  theme="outline"
+                  size="large"
+                  width="100%"
+                />
+              </div>
+              
               <div className="demo-credentials-box">
                 <p className="demo-title">DEMO ACCOUNTS</p>
                 <p className="demo-item"><span className="demo-role">Executive:</span> rachel@performos.io / demo</p>
@@ -1051,6 +1112,7 @@ RULES:
         </div>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
+      </GoogleOAuthProvider>
     );
   }
 

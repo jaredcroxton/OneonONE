@@ -1231,7 +1231,7 @@ RULES:
               />
               <p className="brand-tagline">POWERING HIGH PERFORMANCE</p>
               <p className="brand-description">
-                Structured conversations. Psychological safety insights. Better team outcomes.
+                Structured conversations. Team health insights. Better team outcomes.
               </p>
             </div>
           </div>
@@ -1421,8 +1421,6 @@ RULES:
                   {error && <div className="error-message" data-testid="reflection-error">{error}</div>}
 
                   <div className="questions-section">
-                    <h3 className="section-subheading">How things are going</h3>
-                    <p className="section-subtitle">Reflect on your week</p>
                     {QUESTIONS.filter(q => q.section === 'performance').map(question => (
                       <RatingCommentInput
                         key={question.id}
@@ -1435,8 +1433,6 @@ RULES:
                   </div>
 
                   <div className="questions-section">
-                    <h3 className="section-subheading">How you're doing</h3>
-                    <p className="section-subtitle">This is a safe space — be honest</p>
                     {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
                       <RatingCommentInput
                         key={question.id}
@@ -1500,7 +1496,7 @@ RULES:
         <main className="main-content">
           <section className="hero-section">
             <h2 className="section-title" data-testid="manager-title">Team Dashboard</h2>
-            <p className="section-subtitle">Monitor team health, track one-on-ones, and address psychological safety signals.</p>
+            <p className="section-subtitle">Monitor team health, track one-on-ones, and address wellbeing signals.</p>
           </section>
 
           <section className="content-section dark">
@@ -1698,7 +1694,6 @@ RULES:
 
                     <div className="submission-detail-content">
                       <div className="questions-section">
-                        <h3 className="section-subheading">How things are going</h3>
                         {QUESTIONS.filter(q => q.section === 'performance').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1709,7 +1704,6 @@ RULES:
                       </div>
 
                       <div className="questions-section">
-                        <h3 className="section-subheading">How you're doing</h3>
                         {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1747,7 +1741,6 @@ RULES:
 
                     <div className="submission-detail-content">
                       <div className="questions-section">
-                        <h3 className="section-subheading">How things are going</h3>
                         {QUESTIONS.filter(q => q.section === 'performance').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1758,7 +1751,6 @@ RULES:
                       </div>
 
                       <div className="questions-section">
-                        <h3 className="section-subheading">How you're doing</h3>
                         {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1776,7 +1768,7 @@ RULES:
                 <div className="tab-content" data-testid="team-health-content">
                   <div className="section-header">
                     <h3 className="section-heading">Active Signals</h3>
-                    <p className="section-description">Psychological safety and wellbeing signals detected across your team.</p>
+                    <p className="section-description">Team health and wellbeing signals detected across your team.</p>
                   </div>
 
                   {flags.filter(f => f.status !== 'resolved').length === 0 ? (

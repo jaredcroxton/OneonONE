@@ -389,6 +389,11 @@ function App() {
   });
   const [selectedWeekHistory, setSelectedWeekHistory] = useState(null);
   const [weeklyHistory, setWeeklyHistory] = useState([]);
+
+  // Debug: Log when selectedFlag changes
+  useEffect(() => {
+    console.log(">>> selectedFlag state changed:", selectedFlag);
+  }, [selectedFlag]);
   
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -1756,8 +1761,14 @@ RULES:
                           <button
                             key={flag._id}
                             className="flag-card clickable-flag"
-                            onClick={() => handleFlagClick(flag)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log("FLAG CARD CLICKED!", flag._id);
+                              handleFlagClick(flag);
+                            }}
                             data-testid={`flag-${flag._id}`}
+                            style={{cursor: 'pointer'}}
                           >
                             <div className="flag-header">
                               <div className="flag-member">
@@ -2699,7 +2710,6 @@ RULES:
         </main>
 
         {/* Flag Management Modal */}
-        {console.log("Modal render check - selectedFlag:", selectedFlag)}
         {selectedFlag && (
           <div className="modal-overlay" onClick={closeFlagModal} data-testid="flag-modal-overlay">
             <div className="modal-content flag-modal" onClick={(e) => e.stopPropagation()} data-testid="flag-modal">

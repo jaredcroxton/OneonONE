@@ -384,10 +384,10 @@ function App() {
   // Flag Action Tracking State
   const [selectedFlag, setSelectedFlag] = useState(null);
   const [actionFormData, setActionFormData] = useState({
-    date: '',
     note: '',
     confirmed: false
   });
+  const [selectedWeekHistory, setSelectedWeekHistory] = useState(null);
   
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -441,7 +441,7 @@ function App() {
       const [membersData, statsData, flagsData, submissionsData] = await Promise.all([
         apiCall('/api/members'),
         apiCall('/api/stats/dashboard'),
-        apiCall('/api/flags?status_filter=open'),
+        apiCall('/api/flags'), // Show all flags, not just open ones
         apiCall('/api/submissions')
       ]);
       setMembers(membersData || []);
@@ -617,18 +617,18 @@ function App() {
   // Flag Action Tracking Functions
   const handleFlagClick = (flag) => {
     setSelectedFlag(flag);
-    setActionFormData({ date: '', note: '', confirmed: false });
+    setActionFormData({ note: '', confirmed: false });
   };
 
   const closeFlagModal = () => {
     setSelectedFlag(null);
-    setActionFormData({ date: '', note: '', confirmed: false });
+    setActionFormData({ note: '', confirmed: false });
   };
 
   const handleAddAction = async (e) => {
     e.preventDefault();
-    if (!actionFormData.date || !actionFormData.note || !actionFormData.confirmed) {
-      showToast('Please fill in all fields and confirm the action', 'error');
+    if (!actionFormData.note || !actionFormData.confirmed) {
+      showToast('Please write the action and confirm it has been completed', 'error');
       return;
     }
 
@@ -637,7 +637,6 @@ function App() {
       await apiCall(`/api/flags/${selectedFlag._id}/actions`, {
         method: 'POST',
         body: JSON.stringify({
-          date: actionFormData.date,
           note: actionFormData.note,
           confirmed: actionFormData.confirmed
         })
@@ -646,7 +645,7 @@ function App() {
       showToast('Action logged successfully', 'success');
       
       // Reload flags to get updated data
-      const updatedFlags = await apiCall('/api/flags?status_filter=open');
+      const updatedFlags = await apiCall('/api/flags');
       setFlags(updatedFlags || []);
       
       // Update the selected flag with fresh data
@@ -656,7 +655,7 @@ function App() {
       }
       
       // Reset form
-      setActionFormData({ date: '', note: '', confirmed: false });
+      setActionFormData({ note: '', confirmed: false });
     } catch (err) {
       showToast(err.message || 'Failed to log action', 'error');
     } finally {
@@ -692,7 +691,7 @@ function App() {
       showToast(`Flag status updated to ${newStatus}`, 'success');
       
       // Reload flags
-      const updatedFlags = await apiCall('/api/flags?status_filter=open');
+      const updatedFlags = await apiCall('/api/flags');
       setFlags(updatedFlags || []);
       
       // Close modal if resolved
@@ -1698,13 +1697,13 @@ RULES:
                     <p className="section-description">Psychological safety and wellbeing signals detected across your team.</p>
                   </div>
 
-                  {flags.length === 0 ? (
+                  {flags.filter(f => f.status !== 'resolved').length === 0 ? (
                     <div className="empty-state">
                       <p>No active signals detected. Your team appears to be doing well.</p>
                     </div>
                   ) : (
                     <div className="flags-list">
-                      {flags.map(flag => {
+                      {flags.filter(f => f.status !== 'resolved').map(flag => {
                         const member = members.find(m => m._id === flag.member_id);
                         const actionCount = flag.actions?.length || 0;
                         return (
@@ -2634,7 +2633,7 @@ RULES:
                   {selectedFlag.actions && selectedFlag.actions.length > 0 ? (
                     <div className="action-history-list" data-testid="action-history-list">
                       {selectedFlag.actions
-                        .sort((a, b) => new Date(b.actionedAt) - new Date(a.actionedAt))
+                        .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
                         .map((action) => (
                         <div key={action.id} className="action-history-item" data-testid={`action-item-${action.id}`}>
                           <div className="action-history-header">
@@ -2642,20 +2641,22 @@ RULES:
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                               </svg>
-                              Confirmed
+                              Action logged
                             </div>
-                            <div className="action-date">{formatDate(action.date)}</div>
+                            <div className="action-timestamp-header">
+                              {new Date(action.savedAt).toLocaleString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })}
+                            </div>
                           </div>
                           <div className="action-note">{action.note}</div>
-                          <div className="action-timestamp">
-                            Logged {new Date(action.actionedAt).toLocaleString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
+                          <div className="action-timestamp-footer">
+                            Auto-generated timestamp (permanent, cannot be edited)
                           </div>
                         </div>
                       ))}
@@ -2672,31 +2673,18 @@ RULES:
                   <h3 className="section-subtitle">Add New Action</h3>
                   <form onSubmit={handleAddAction} data-testid="add-action-form">
                     <div className="form-group">
-                      <label htmlFor="action-date">Action Date</label>
-                      <input
-                        id="action-date"
-                        type="date"
-                        className="form-input"
-                        value={actionFormData.date}
-                        onChange={(e) => setActionFormData({ ...actionFormData, date: e.target.value })}
-                        max={new Date().toISOString().split('T')[0]}
-                        required
-                        data-testid="action-date-input"
-                      />
-                    </div>
-
-                    <div className="form-group">
                       <label htmlFor="action-note">What action did you take?</label>
                       <textarea
                         id="action-note"
                         className="form-textarea"
-                        placeholder="Describe the specific action taken..."
+                        placeholder="Describe the specific action you took..."
                         value={actionFormData.note}
                         onChange={(e) => setActionFormData({ ...actionFormData, note: e.target.value })}
-                        rows="3"
+                        rows="4"
                         required
                         data-testid="action-note-input"
                       />
+                      <div className="form-hint">Timestamp will be auto-generated when you save this action</div>
                     </div>
 
                     <div className="form-group">
@@ -2715,10 +2703,10 @@ RULES:
                     <button
                       type="submit"
                       className="btn-primary"
-                      disabled={!actionFormData.date || !actionFormData.note || !actionFormData.confirmed || loading}
+                      disabled={!actionFormData.note || !actionFormData.confirmed || loading}
                       data-testid="log-action-button"
                     >
-                      {loading ? 'Logging Action...' : 'Log Action'}
+                      {loading ? 'Logging Action...' : 'Save Action'}
                     </button>
                   </form>
                 </div>

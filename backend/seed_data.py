@@ -101,31 +101,28 @@ SEED_DATA = {
         {"_id": "sub_027", "member_id": "member_006", "date": "2026-03-23", "submitted_at": "2026-03-22T17:00:00", "locked": "2026-03-22T17:00:00", "responses": {"proud_of": mk(2,"Got through the testing queue"), "stuck_on": mk(3,"Same issues as always"), "need_from_manager": mk(2,"Not sure it matters"), "target_confidence": mk(2,"Not confident"), "feeling_about_work": mk(2,"It's fine"), "safe_to_raise_concerns": mk(3,"I guess"), "feel_supported": mk(2,"Don't feel like part of the team lately"), "workload_manageable": mk(3,"It's fine"), "anything_affecting": mk(2,"Don't see the point in raising things that never change")}, "flags_detected": []}
     ],
     "flags": [
-        {"_id": "flag_001", "member_id": "member_002", "submission_id": "sub_010", "date": "2026-03-23", "category": "wellbeing", "severity": "action_required", "signal": "Wellbeing score at 2/5 for two consecutive weeks. Reports feeling drained and unmotivated.", "comment_snippet": "Not great. Feeling drained and unmotivated.", "status": "open", "actions": [
+        {"_id": "flag_001", "member_id": "member_002", "submission_id": "sub_010", "date": "2026-03-23", "category": "wellbeing", "severity": "action_required", "signal": "Wellbeing score at 2/5 for two consecutive weeks. Reports feeling drained and unmotivated.", "comment_snippet": "Not great. Feeling drained and unmotivated.", "status": "in_progress", "actions": [
             {
                 "id": "action_001",
-                "date": "2026-03-22",
                 "note": "Removed James from on-call rotation for 4 weeks. Communicated to team.",
-                "actionedAt": "2026-03-22T10:30:00Z",
+                "savedAt": "2026-03-22T14:30:00Z",
                 "confirmed": True
             }
         ]},
         {"_id": "flag_002", "member_id": "member_002", "submission_id": "sub_010", "date": "2026-03-23", "category": "workload", "severity": "action_required", "signal": "Workload score at 1/5 (Overwhelmed). Declining from 3→2→1 over four weeks.", "comment_snippet": "I'm drowning. The on-call rotation really took it out of me.", "status": "open", "actions": []},
         {"_id": "flag_003", "member_id": "member_003", "submission_id": "sub_015", "date": "2026-03-23", "category": "psychological_safety", "severity": "action_required", "signal": "Safe to raise concerns dropped from 4→3→2 over four weeks. Reports feeling dismissed.", "comment_snippet": "Raised a concern last week and felt dismissed.", "status": "open", "actions": []},
         {"_id": "flag_004", "member_id": "member_003", "submission_id": "sub_014", "date": "2026-03-16", "category": "team_dynamics", "severity": "concern", "signal": "Feel supported dropped to 2/5. Reports feeling isolated and excluded from decisions.", "comment_snippet": "Feeling isolated. Building things in a vacuum.", "status": "open", "actions": []},
-        {"_id": "flag_005", "member_id": "member_004", "submission_id": "sub_020", "date": "2026-03-23", "category": "workload", "severity": "concern", "signal": "Workload score at 2/5 for three consecutive weeks. Single point of failure.", "comment_snippet": "Context-switching between incidents and projects is exhausting.", "status": "open", "actions": [
+        {"_id": "flag_005", "member_id": "member_004", "submission_id": "sub_020", "date": "2026-03-23", "category": "workload", "severity": "concern", "signal": "Workload score at 2/5 for three consecutive weeks. Single point of failure.", "comment_snippet": "Context-switching between incidents and projects is exhausting.", "status": "in_progress", "actions": [
             {
                 "id": "action_002",
-                "date": "2026-03-18",
                 "note": "Identified Sarah as DevOps cross-training candidate. Starting next sprint.",
-                "actionedAt": "2026-03-18T14:15:00Z",
+                "savedAt": "2026-03-18T10:00:00Z",
                 "confirmed": True
             },
             {
                 "id": "action_003",
-                "date": "2026-03-20",
                 "note": "Reassigned 2 non-urgent infrastructure tickets to reduce queue.",
-                "actionedAt": "2026-03-20T09:45:00Z",
+                "savedAt": "2026-03-20T14:30:00Z",
                 "confirmed": True
             }
         ]},

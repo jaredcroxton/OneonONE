@@ -421,8 +421,8 @@ async def get_this_week_submissions(current_user: dict = Depends(get_current_use
 # ============================================================
 
 @app.get("/api/flags")
-async def get_flags(status_filter: Optional[str] = "open", current_user: dict = Depends(get_current_user)):
-    """Get flags"""
+async def get_flags(status_filter: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """Get flags - defaults to showing open + in_progress (not resolved)"""
     query = {}
     
     if current_user["role"] == "manager":
@@ -439,6 +439,9 @@ async def get_flags(status_filter: Optional[str] = "open", current_user: dict = 
     
     if status_filter:
         query["status"] = status_filter
+    else:
+        # Default: show open and in_progress, not resolved
+        query["status"] = {"$ne": "resolved"}
     
     flags_cursor = flags_collection.find(query).sort("date", -1)
     flags = await flags_cursor.to_list(length=1000)
@@ -475,7 +478,7 @@ async def update_flag(flag_id: str, update_data: dict, current_user: dict = Depe
 
 @app.post("/api/flags/{flag_id}/actions")
 async def add_flag_action(flag_id: str, action_data: dict, current_user: dict = Depends(get_current_user)):
-    """Add an action to a flag (manager only)"""
+    """Add an action to a flag (manager only) - timestamp is SERVER-GENERATED"""
     if current_user["role"] != "manager":
         raise HTTPException(status_code=403, detail="Only managers can add flag actions")
     
@@ -487,13 +490,12 @@ async def add_flag_action(flag_id: str, action_data: dict, current_user: dict = 
     if not member or member["manager_id"] != current_user["_id"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Create new action
+    # Create new action with SERVER-GENERATED timestamp
     import uuid
     action = {
         "id": str(uuid.uuid4()),
-        "date": action_data.get("date"),
         "note": action_data.get("note"),
-        "actionedAt": datetime.now(timezone.utc).isoformat(),
+        "savedAt": datetime.now(timezone.utc).isoformat(),  # SERVER-GENERATED, tamper-proof
         "confirmed": action_data.get("confirmed", False)
     }
     
@@ -503,11 +505,11 @@ async def add_flag_action(flag_id: str, action_data: dict, current_user: dict = 
         {"$push": {"actions": action}}
     )
     
-    # Update flag status if provided
-    if action_data.get("updateStatus"):
+    # Auto-update status to "in_progress" if this is the first action
+    if not flag.get("actions") or len(flag.get("actions", [])) == 0:
         await flags_collection.update_one(
             {"_id": flag_id},
-            {"$set": {"status": action_data["updateStatus"]}}
+            {"$set": {"status": "in_progress"}}
         )
     
     updated_flag = await flags_collection.find_one({"_id": flag_id})

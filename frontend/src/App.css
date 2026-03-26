@@ -3357,7 +3357,7 @@ h1, h2, h3, h4, h5, h6 {
   height: 14px;
 }
 
-.action-date {
+.action-timestamp-header {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-on-light);
@@ -3369,9 +3369,17 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.5;
 }
 
-.action-timestamp {
+.action-timestamp-footer {
+  font-size: 0.75rem;
+  color: var(--text-on-light-muted);
+  font-style: italic;
+}
+
+.form-hint {
   font-size: 0.8125rem;
   color: var(--text-on-light-muted);
+  margin-top: 0.5rem;
+  font-style: italic;
 }
 
 .action-history-empty {

@@ -381,19 +381,12 @@ function App() {
   const [coaching, setCoaching] = useState(null);
   const [coachingLoading, setCoachingLoading] = useState(false);
   
-  // Flag Action Tracking State
-  const [selectedFlag, setSelectedFlag] = useState(null);
-  const [actionFormData, setActionFormData] = useState({
-    note: '',
-    confirmed: false
-  });
+  // Flag Action Tracking State - INLINE EDIT (no modal)
+  const [editingFlagId, setEditingFlagId] = useState(null);
+  const [actionNote, setActionNote] = useState('');
+  const [actionConfirmed, setActionConfirmed] = useState(false);
+  const [savingAction, setSavingAction] = useState(false);
   const [selectedWeekHistory, setSelectedWeekHistory] = useState(null);
-  const [weeklyHistory, setWeeklyHistory] = useState([]);
-
-  // Debug: Log when selectedFlag changes
-  useEffect(() => {
-    console.log(">>> selectedFlag state changed:", selectedFlag);
-  }, [selectedFlag]);
   
   // Executive State
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -618,6 +611,40 @@ function App() {
     if (avgWellbeing >= 4) return 'good';
     if (avgWellbeing >= 3) return 'caution';
     return 'risk';
+  };
+
+  // Flag Action Inline Edit Functions
+  const handleSaveAction = async (flagId) => {
+    if (!actionNote.trim() || !actionConfirmed) {
+      showToast('Please enter action note and confirm completion', 'error');
+      return;
+    }
+
+    try {
+      setSavingAction(true);
+      await apiCall(`/api/flags/${flagId}/actions`, {
+        method: 'POST',
+        body: JSON.stringify({
+          note: actionNote.trim(),
+          confirmed: true
+        })
+      });
+
+      showToast('Action logged successfully', 'success');
+      
+      // Reload flags
+      const updatedFlags = await apiCall('/api/flags');
+      setFlags(updatedFlags || []);
+      
+      // Close the edit form
+      setEditingFlagId(null);
+      setActionNote('');
+      setActionConfirmed(false);
+    } catch (err) {
+      showToast(err.message || 'Failed to save action', 'error');
+    } finally {
+      setSavingAction(false);
+    }
   };
 
   // Weekly Action History Functions
@@ -1757,51 +1784,154 @@ RULES:
                       {flags.filter(f => f.status !== 'resolved').map(flag => {
                         const member = members.find(m => m._id === flag.member_id);
                         const actionCount = flag.actions?.length || 0;
+                        const isEditing = editingFlagId === flag._id;
+                        
                         return (
-                          <button
+                          <div
                             key={flag._id}
-                            className="flag-card clickable-flag"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log("FLAG CARD CLICKED!", flag._id);
-                              handleFlagClick(flag);
-                            }}
+                            className="flag-card-container"
                             data-testid={`flag-${flag._id}`}
-                            style={{cursor: 'pointer'}}
                           >
-                            <div className="flag-header">
-                              <div className="flag-member">
-                                {member && <Avatar name={member.name} size={32} />}
-                                <div className="flag-member-info">
-                                  <div className="flag-member-name">{member?.name || 'Unknown'}</div>
-                                  <div className="flag-date">{formatDate(flag.date)}</div>
+                            <div className="flag-card">
+                              <div className="flag-header">
+                                <div className="flag-member">
+                                  {member && <Avatar name={member.name} size={32} />}
+                                  <div className="flag-member-info">
+                                    <div className="flag-member-name">{member?.name || 'Unknown'}</div>
+                                    <div className="flag-date">{formatDate(flag.date)}</div>
+                                  </div>
+                                </div>
+                                <div className="flag-header-badges">
+                                  <span className={`severity-badge ${flag.severity}`} data-testid="flag-severity">
+                                    {flag.severity === 'action_required' ? 'Action Required' : flag.severity === 'concern' ? 'Concern' : 'Watch'}
+                                  </span>
+                                  {actionCount > 0 && (
+                                    <span className="action-count-badge" data-testid="action-count-badge">
+                                      {actionCount} {actionCount === 1 ? 'action' : 'actions'}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flag-header-badges">
-                                <span className={`severity-badge ${flag.severity}`} data-testid="flag-severity">
-                                  {flag.severity === 'action_required' ? 'Action Required' : flag.severity === 'concern' ? 'Concern' : 'Watch'}
-                                </span>
-                                {actionCount > 0 && (
-                                  <span className="action-count-badge" data-testid="action-count-badge">
-                                    {actionCount} {actionCount === 1 ? 'action' : 'actions'}
-                                  </span>
+                              <div className="flag-body">
+                                <div className="flag-category">{flag.category.replace('_', ' ')}</div>
+                                <div className="flag-signal">{flag.signal}</div>
+                                {flag.comment_snippet && (
+                                  <div className="flag-quote" data-testid="flag-quote">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
+                                    </svg>
+                                    "{flag.comment_snippet}"
+                                  </div>
                                 )}
                               </div>
+                              
+                              {/* Edit Action Button */}
+                              <div className="flag-footer">
+                                <button
+                                  className="edit-action-btn"
+                                  onClick={() => {
+                                    if (isEditing) {
+                                      setEditingFlagId(null);
+                                      setActionNote('');
+                                      setActionConfirmed(false);
+                                    } else {
+                                      setEditingFlagId(flag._id);
+                                      setActionNote('');
+                                      setActionConfirmed(false);
+                                    }
+                                  }}
+                                  data-testid={`edit-action-${flag._id}`}
+                                >
+                                  {isEditing ? 'Close' : 'Edit Action'}
+                                </button>
+                              </div>
                             </div>
-                            <div className="flag-body">
-                              <div className="flag-category">{flag.category.replace('_', ' ')}</div>
-                              <div className="flag-signal">{flag.signal}</div>
-                              {flag.comment_snippet && (
-                                <div className="flag-quote" data-testid="flag-quote">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
-                                  </svg>
-                                  "{flag.comment_snippet}"
+
+                            {/* Inline Action Form - Expands when editing */}
+                            {isEditing && (
+                              <div className="flag-action-form" data-testid="inline-action-form">
+                                {/* Previous Actions */}
+                                {actionCount > 0 && (
+                                  <div className="previous-actions-section">
+                                    <h4 className="section-subtitle">Previous Actions ({actionCount})</h4>
+                                    <div className="previous-actions-list">
+                                      {flag.actions
+                                        .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
+                                        .map((action, idx) => (
+                                        <div key={idx} className="previous-action-item">
+                                          <div className="action-timestamp">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{color: '#10B981'}}>
+                                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                            </svg>
+                                            {new Date(action.savedAt).toLocaleString('en-US', {
+                                              day: 'numeric',
+                                              month: 'short',
+                                              year: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              hour12: true
+                                            })}
+                                          </div>
+                                          <div className="action-note-text">{action.note}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Add New Action */}
+                                <div className="add-action-section">
+                                  <h4 className="section-subtitle">Add New Action</h4>
+                                  <div className="form-group">
+                                    <label>What action did you take?</label>
+                                    <textarea
+                                      value={actionNote}
+                                      onChange={(e) => setActionNote(e.target.value)}
+                                      placeholder="Describe the specific action you took..."
+                                      rows="3"
+                                      className="form-textarea"
+                                      data-testid="action-note-input"
+                                    />
+                                    <div className="form-hint">Timestamp will be auto-generated when you save</div>
+                                  </div>
+                                  
+                                  <div className="form-group">
+                                    <label className="checkbox-label">
+                                      <input
+                                        type="checkbox"
+                                        checked={actionConfirmed}
+                                        onChange={(e) => setActionConfirmed(e.target.checked)}
+                                        data-testid="action-confirm-checkbox"
+                                      />
+                                      <span>I confirm this action has been completed</span>
+                                    </label>
+                                  </div>
+
+                                  <div className="form-actions">
+                                    <button
+                                      className="btn-secondary"
+                                      onClick={() => {
+                                        setEditingFlagId(null);
+                                        setActionNote('');
+                                        setActionConfirmed(false);
+                                      }}
+                                      disabled={savingAction}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      className="btn-primary"
+                                      onClick={() => handleSaveAction(flag._id)}
+                                      disabled={!actionNote.trim() || !actionConfirmed || savingAction}
+                                      data-testid="save-action-btn"
+                                    >
+                                      {savingAction ? 'Saving...' : 'Save Action'}
+                                    </button>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </button>
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
@@ -2709,174 +2839,7 @@ RULES:
           </section>
         </main>
 
-        {/* Flag Management Modal */}
-        {selectedFlag && (
-          <div className="modal-overlay" onClick={closeFlagModal} data-testid="flag-modal-overlay">
-            <div className="modal-content flag-modal" onClick={(e) => e.stopPropagation()} data-testid="flag-modal">
-              <div className="modal-header">
-                <h2 className="modal-title">Flag Management</h2>
-                <button className="modal-close" onClick={closeFlagModal} data-testid="close-flag-modal">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-
-              <div className="modal-body">
-                {/* Flag Details */}
-                <div className="flag-detail-section">
-                  <div className="flag-detail-header">
-                    <div className="flag-detail-member">
-                      {members.find(m => m._id === selectedFlag.member_id) && (
-                        <Avatar name={members.find(m => m._id === selectedFlag.member_id).name} size={40} />
-                      )}
-                      <div>
-                        <div className="flag-detail-name">{members.find(m => m._id === selectedFlag.member_id)?.name || 'Unknown'}</div>
-                        <div className="flag-detail-date">{formatDate(selectedFlag.date)}</div>
-                      </div>
-                    </div>
-                    <div className="flag-detail-badges">
-                      <span className={`severity-badge ${selectedFlag.severity}`}>
-                        {selectedFlag.severity === 'action_required' ? 'Action Required' : 'Concern'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flag-detail-category">{selectedFlag.category.replace('_', ' ')}</div>
-                  <div className="flag-detail-signal">{selectedFlag.signal}</div>
-                  {selectedFlag.comment_snippet && (
-                    <div className="flag-detail-quote">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
-                      </svg>
-                      "{selectedFlag.comment_snippet}"
-                    </div>
-                  )}
-                </div>
-
-                {/* Status Management */}
-                <div className="flag-status-section">
-                  <label className="flag-status-label">Flag Status</label>
-                  <div className="flag-status-buttons">
-                    <button
-                      className={`status-button ${selectedFlag.status === 'open' ? 'active' : ''}`}
-                      onClick={() => handleUpdateFlagStatus('open')}
-                      disabled={selectedFlag.status === 'open' || loading}
-                      data-testid="status-open"
-                    >
-                      Open
-                    </button>
-                    <button
-                      className={`status-button ${selectedFlag.status === 'in_progress' ? 'active' : ''}`}
-                      onClick={() => handleUpdateFlagStatus('in_progress')}
-                      disabled={selectedFlag.status === 'in_progress' || loading}
-                      data-testid="status-in-progress"
-                    >
-                      In Progress
-                    </button>
-                    <button
-                      className={`status-button ${selectedFlag.status === 'resolved' ? 'active' : ''}`}
-                      onClick={() => handleUpdateFlagStatus('resolved')}
-                      disabled={selectedFlag.status === 'resolved' || loading || (!selectedFlag.actions || selectedFlag.actions.length === 0)}
-                      data-testid="status-resolved"
-                      title={(!selectedFlag.actions || selectedFlag.actions.length === 0) ? 'Cannot resolve without at least one action' : ''}
-                    >
-                      Resolved
-                    </button>
-                  </div>
-                  {(!selectedFlag.actions || selectedFlag.actions.length === 0) && (
-                    <div className="flag-status-note">
-                      ⚠️ You must log at least one action before resolving this flag
-                    </div>
-                  )}
-                </div>
-
-                {/* Action History */}
-                <div className="action-history-section">
-                  <h3 className="section-subtitle">Action History ({selectedFlag.actions?.length || 0})</h3>
-                  {selectedFlag.actions && selectedFlag.actions.length > 0 ? (
-                    <div className="action-history-list" data-testid="action-history-list">
-                      {selectedFlag.actions
-                        .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
-                        .map((action) => (
-                        <div key={action.id} className="action-history-item" data-testid={`action-item-${action.id}`}>
-                          <div className="action-history-header">
-                            <div className="action-confirmed-badge">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                              </svg>
-                              Action logged
-                            </div>
-                            <div className="action-timestamp-header">
-                              {new Date(action.savedAt).toLocaleString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                year: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}
-                            </div>
-                          </div>
-                          <div className="action-note">{action.note}</div>
-                          <div className="action-timestamp-footer">
-                            Auto-generated timestamp (permanent, cannot be edited)
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="action-history-empty">
-                      No actions logged yet. Add the first action below to start tracking your response.
-                    </div>
-                  )}
-                </div>
-
-                {/* Add New Action Form */}
-                <div className="add-action-section">
-                  <h3 className="section-subtitle">Add New Action</h3>
-                  <form onSubmit={handleAddAction} data-testid="add-action-form">
-                    <div className="form-group">
-                      <label htmlFor="action-note">What action did you take?</label>
-                      <textarea
-                        id="action-note"
-                        className="form-textarea"
-                        placeholder="Describe the specific action you took..."
-                        value={actionFormData.note}
-                        onChange={(e) => setActionFormData({ ...actionFormData, note: e.target.value })}
-                        rows="4"
-                        required
-                        data-testid="action-note-input"
-                      />
-                      <div className="form-hint">Timestamp will be auto-generated when you save this action</div>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={actionFormData.confirmed}
-                          onChange={(e) => setActionFormData({ ...actionFormData, confirmed: e.target.checked })}
-                          required
-                          data-testid="action-confirm-checkbox"
-                        />
-                        <span>I confirm this action has been completed</span>
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="btn-primary"
-                      disabled={!actionFormData.note || !actionFormData.confirmed || loading}
-                      data-testid="log-action-button"
-                    >
-                      {loading ? 'Logging Action...' : 'Save Action'}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
 
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

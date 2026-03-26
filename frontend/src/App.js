@@ -5,7 +5,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
 if (!API_BASE) console.log('Using relative API paths for same-origin deployment');
 const CURRENT_WEEK = '2026-03-23';
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '1076094647421-u1bge3nkhmotrc1lganqm53e51dka88a.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 // Utility functions
 const getAvatarColor = (name) => {

@@ -472,6 +472,79 @@ async def update_flag(flag_id: str, update_data: dict, current_user: dict = Depe
     return serialize_doc(updated_flag)
 
 
+
+@app.post("/api/flags/{flag_id}/actions")
+async def add_flag_action(flag_id: str, action_data: dict, current_user: dict = Depends(get_current_user)):
+    """Add an action to a flag (manager only)"""
+    if current_user["role"] != "manager":
+        raise HTTPException(status_code=403, detail="Only managers can add flag actions")
+    
+    flag = await flags_collection.find_one({"_id": flag_id})
+    if not flag:
+        raise HTTPException(status_code=404, detail="Flag not found")
+    
+    member = await members_collection.find_one({"_id": flag["member_id"]})
+    if not member or member["manager_id"] != current_user["_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Create new action
+    import uuid
+    action = {
+        "id": str(uuid.uuid4()),
+        "date": action_data.get("date"),
+        "note": action_data.get("note"),
+        "actionedAt": datetime.now(timezone.utc).isoformat(),
+        "confirmed": action_data.get("confirmed", False)
+    }
+    
+    # Add action to flag's actions array
+    await flags_collection.update_one(
+        {"_id": flag_id},
+        {"$push": {"actions": action}}
+    )
+    
+    # Update flag status if provided
+    if action_data.get("updateStatus"):
+        await flags_collection.update_one(
+            {"_id": flag_id},
+            {"$set": {"status": action_data["updateStatus"]}}
+        )
+    
+    updated_flag = await flags_collection.find_one({"_id": flag_id})
+    return serialize_doc(updated_flag)
+
+@app.patch("/api/flags/{flag_id}/resolve")
+async def resolve_flag(flag_id: str, resolution_data: dict, current_user: dict = Depends(get_current_user)):
+    """Resolve a flag with final note"""
+    if current_user["role"] != "manager":
+        raise HTTPException(status_code=403, detail="Only managers can resolve flags")
+    
+    flag = await flags_collection.find_one({"_id": flag_id})
+    if not flag:
+        raise HTTPException(status_code=404, detail="Flag not found")
+    
+    # Check if flag has at least one action
+    if not flag.get("actions") or len(flag.get("actions", [])) == 0:
+        raise HTTPException(status_code=400, detail="Cannot resolve flag without logging at least one action")
+    
+    member = await members_collection.find_one({"_id": flag["member_id"]})
+    if not member or member["manager_id"] != current_user["_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Update flag as resolved
+    await flags_collection.update_one(
+        {"_id": flag_id},
+        {"$set": {
+            "status": "resolved",
+            "resolvedAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "resolvedNote": resolution_data.get("note", "")
+        }}
+    )
+    
+    updated_flag = await flags_collection.find_one({"_id": flag_id})
+    return serialize_doc(updated_flag)
+
+
 # ============================================================
 # DASHBOARD STATS
 # ============================================================

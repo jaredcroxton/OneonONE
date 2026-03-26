@@ -1,6 +1,30 @@
 [
   {
-    "content": "Phase 2: End to End Testing using Testing Agent",
-    "status": "completed"
+    "content": "Update flag data model to include actions array with audit trail",
+    "status": "in_progress"
+  },
+  {
+    "content": "Create Flag Management Modal with action history and add new action form",
+    "status": "pending"
+  },
+  {
+    "content": "Add action count badges and latest action preview to Team Health tab",
+    "status": "pending"
+  },
+  {
+    "content": "Update Executive Dashboard to show action status (count only, not details)",
+    "status": "pending"
+  },
+  {
+    "content": "Update flag status badges everywhere (Open/In Progress/Resolved)",
+    "status": "pending"
+  },
+  {
+    "content": "Add sample action history to seed data for demo",
+    "status": "pending"
+  },
+  {
+    "content": "Test complete flag action workflow",
+    "status": "pending"
   }
 ]

@@ -54,18 +54,22 @@ const apiCall = async (endpoint, options = {}) => {
   return res.json();
 };
 
-// QUESTIONS DEFINITION
+// QUESTIONS DEFINITION - 6 HUMAN QUESTIONS
 const QUESTIONS = [
-  { id: 'proud_of', section: 'performance', label: "What's the result you're most proud of since our last one-on-one?", ratingLabel: 'How proud do you feel?', low: 'Not very', high: 'Extremely proud' },
-  { id: 'stuck_on', section: 'performance', label: 'Where are you stuck or behind on your goals?', ratingLabel: 'How blocked do you feel?', low: 'Not blocked', high: 'Completely stuck' },
-  { id: 'need_from_manager', section: 'performance', label: 'What do you need from me to move forward?', ratingLabel: 'How urgent is this support?', low: 'Not urgent', high: 'Critical' },
-  { id: 'target_confidence', section: 'performance', label: 'Rate your confidence in hitting your current targets', ratingLabel: 'Confidence level', low: 'Low confidence', high: 'Very confident' },
-  { id: 'feeling_about_work', section: 'wellbeing', label: 'How are you feeling about work right now?', ratingLabel: 'Overall feeling', low: 'Struggling', high: 'Thriving' },
-  { id: 'safe_to_raise_concerns', section: 'wellbeing', label: 'Do you feel safe raising concerns or disagreeing with decisions in our team?', ratingLabel: 'Psychological safety', low: 'Not at all', high: 'Completely safe' },
-  { id: 'feel_supported', section: 'wellbeing', label: 'How supported do you feel by your team?', ratingLabel: 'Support level', low: 'Not supported', high: 'Very supported' },
-  { id: 'workload_manageable', section: 'wellbeing', label: 'Is your workload manageable right now?', ratingLabel: 'Workload level', low: 'Overwhelmed', high: 'Comfortable' },
-  { id: 'anything_affecting', section: 'wellbeing', label: "Is there anything affecting your work that you'd like to talk about?", ratingLabel: 'How much is this impacting you?', low: 'Minimal impact', high: 'Significant impact', optional: true }
+  // Section 1: How things are going
+  { id: 'proud_of', section: 'performance', label: "What went well for you this week? What's a win you want to share?", ratingLabel: 'How do you feel about your week?', low: 'Nothing comes to mind', high: 'Really proud of something' },
+  { id: 'stuck_on', section: 'performance', label: "What's slowing you down or getting in the way?", ratingLabel: 'How blocked do you feel?', low: 'Nothing really', high: 'Significantly blocked' },
+  { id: 'need_from_manager', section: 'performance', label: 'How can your manager help you this week?', ratingLabel: 'How much support do you need?', low: "I'm all good", high: 'I really need support' },
+  { id: 'feeling_about_work', section: 'performance', label: 'How are you feeling about your work right now?', ratingLabel: 'Overall feeling', low: 'Struggling', high: 'Really good' },
+  // Section 2: How you're doing
+  { id: 'safe_to_raise_concerns', section: 'wellbeing', label: 'Do you feel comfortable speaking up in the team?', ratingLabel: 'How comfortable are you?', low: 'Not really', high: 'Completely' },
+  { id: 'workload_manageable', section: 'wellbeing', label: "How's your energy and workload right now?", ratingLabel: 'Your energy level', low: 'Running on empty', high: 'Good balance' }
 ];
+
+const SECTION_HEADERS = {
+  performance: { title: "How things are going", subtitle: "Reflect on your week" },
+  wellbeing: { title: "How you're doing", subtitle: "This is a safe space — be honest" }
+};
 
 // COMPONENTS
 function Avatar({ name, size = 52, healthStatus }) {
@@ -128,18 +132,16 @@ function RatingCommentInput({ question, value, onChange, disabled }) {
 function TrendCard({ metricKey, submissions, dark, compact, hideLabel = false }) {
   const wellbeingLabels = {
     feeling_about_work: "Feeling about work",
-    safe_to_raise_concerns: "Psychological safety",
-    feel_supported: "Team support",
-    workload_manageable: "Workload",
-    target_confidence: "Confidence in targets"
+    safe_to_raise_concerns: "Speaking up",
+    workload_manageable: "Energy & workload",
+    proud_of: "Weekly wins"
   };
   
   const wellbeingSubs = {
     feeling_about_work: "How are you feeling about work?",
-    safe_to_raise_concerns: "Do you feel safe raising concerns?",
-    feel_supported: "How supported do you feel?",
-    workload_manageable: "Is your workload manageable?",
-    target_confidence: "Confidence in hitting targets"
+    safe_to_raise_concerns: "Do you feel comfortable speaking up?",
+    workload_manageable: "How's your energy level?",
+    proud_of: "What went well this week?"
   };
   
   const label = hideLabel && metricKey === 'safe_to_raise_concerns' 
@@ -1419,7 +1421,8 @@ RULES:
                   {error && <div className="error-message" data-testid="reflection-error">{error}</div>}
 
                   <div className="questions-section">
-                    <h3 className="section-subheading">Performance & Progress</h3>
+                    <h3 className="section-subheading">How things are going</h3>
+                    <p className="section-subtitle">Reflect on your week</p>
                     {QUESTIONS.filter(q => q.section === 'performance').map(question => (
                       <RatingCommentInput
                         key={question.id}
@@ -1432,7 +1435,8 @@ RULES:
                   </div>
 
                   <div className="questions-section">
-                    <h3 className="section-subheading">Wellbeing & Support</h3>
+                    <h3 className="section-subheading">How you're doing</h3>
+                    <p className="section-subtitle">This is a safe space — be honest</p>
                     {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
                       <RatingCommentInput
                         key={question.id}
@@ -1694,7 +1698,7 @@ RULES:
 
                     <div className="submission-detail-content">
                       <div className="questions-section">
-                        <h3 className="section-subheading">Performance & Progress</h3>
+                        <h3 className="section-subheading">How things are going</h3>
                         {QUESTIONS.filter(q => q.section === 'performance').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1705,7 +1709,7 @@ RULES:
                       </div>
 
                       <div className="questions-section">
-                        <h3 className="section-subheading">Wellbeing & Support</h3>
+                        <h3 className="section-subheading">How you're doing</h3>
                         {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1743,7 +1747,7 @@ RULES:
 
                     <div className="submission-detail-content">
                       <div className="questions-section">
-                        <h3 className="section-subheading">Performance & Progress</h3>
+                        <h3 className="section-subheading">How things are going</h3>
                         {QUESTIONS.filter(q => q.section === 'performance').map(question => (
                           <RatingCommentDisplay
                             key={question.id}
@@ -1754,7 +1758,7 @@ RULES:
                       </div>
 
                       <div className="questions-section">
-                        <h3 className="section-subheading">Wellbeing & Support</h3>
+                        <h3 className="section-subheading">How you're doing</h3>
                         {QUESTIONS.filter(q => q.section === 'wellbeing').map(question => (
                           <RatingCommentDisplay
                             key={question.id}

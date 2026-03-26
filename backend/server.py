@@ -15,7 +15,7 @@ from models import (
     Submission, SubmissionCreate, WeeklyReflection, ResponseItem,
     Flag
 )
-from auth import authenticate_user, create_access_token
+from auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from flag_detection import detect_flags_for_submission, check_missing_submissions
 from seed_data import seed_database, generate_mondays, MONDAY_DATES
 

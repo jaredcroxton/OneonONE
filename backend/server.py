@@ -643,7 +643,7 @@ async def generate_coaching(payload: dict):
                     "Authorization": f"Bearer {openai_api_key}"
                 },
                 json={
-                    "model": "gpt-4-turbo-preview",
+                    "model": "gpt-4o",
                     "messages": [{"role": "user", "content": payload.get("prompt")}],
                     "max_tokens": 3000,
                     "temperature": 0.7
@@ -679,7 +679,7 @@ async def generate_exec_summary(payload: dict):
                     "Authorization": f"Bearer {openai_api_key}"
                 },
                 json={
-                    "model": "gpt-4-turbo-preview",
+                    "model": "gpt-4o",
                     "messages": [{"role": "user", "content": payload.get("prompt")}],
                     "max_tokens": 4000,
                     "temperature": 0.7

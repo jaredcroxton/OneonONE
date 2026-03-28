@@ -1230,15 +1230,15 @@ RULES:
                 data-testid="brand-logo"
               />
               <p className="brand-tagline">POWERING HIGH PERFORMANCE</p>
+              <h1 className="product-name">PulseCheck</h1>
+              <p className="brand-description">
+                See it before they say it
+              </p>
             </div>
           </div>
           <div className="login-form-panel">
             <form className="login-form" onSubmit={handleLogin} data-testid="login-form">
-              <div className="login-header">
-                <h1 className="login-product-name">PulseCheck</h1>
-                <p className="login-tagline">See it before they say it</p>
-                <p className="login-brand-credit">by PerformOS</p>
-              </div>
+              <h2 className="login-title">Welcome back</h2>
               {error && <div className="error-message" data-testid="login-error">{error}</div>}
               <div className="form-group">
                 <label htmlFor="email">Email</label>

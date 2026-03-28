@@ -1230,7 +1230,7 @@ RULES:
                 data-testid="brand-logo"
               />
               <p className="brand-tagline">POWERING HIGH PERFORMANCE</p>
-              <h1 className="product-name">PulseCheck</h1>
+              <h1 className="product-name">PulseCheck 360</h1>
               <p className="brand-description">
                 See it before they say it
               </p>
@@ -1315,7 +1315,7 @@ RULES:
       <div className="app-shell">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck</h1>
+            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck 360</h1>
             <div className="header-right">
               <Avatar name={user.name} size={36} />
               <div className="user-info">
@@ -1482,7 +1482,7 @@ RULES:
       <div className="app-shell">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck</h1>
+            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck 360</h1>
             <div className="header-right">
               <Avatar name={user.name} size={36} />
               <div className="user-info">
@@ -2438,7 +2438,7 @@ RULES:
       <div className="app-shell">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck</h1>
+            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck 360</h1>
             <div className="header-right">
               <Avatar name={user.name} size={36} />
               <div className="user-info">

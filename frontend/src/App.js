@@ -1230,8 +1230,9 @@ RULES:
                 data-testid="brand-logo"
               />
               <p className="brand-tagline">POWERING HIGH PERFORMANCE</p>
+              <h1 className="product-name">PulseCheck</h1>
               <p className="brand-description">
-                Structured conversations. Team health insights. Better team outcomes.
+                See it before they say it
               </p>
             </div>
           </div>
@@ -1314,7 +1315,7 @@ RULES:
       <div className="app-shell">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="header-title" data-testid="app-title">PerformOS</h1>
+            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck</h1>
             <div className="header-right">
               <Avatar name={user.name} size={36} />
               <div className="user-info">
@@ -1481,7 +1482,7 @@ RULES:
       <div className="app-shell">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="header-title" data-testid="app-title">PerformOS</h1>
+            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck</h1>
             <div className="header-right">
               <Avatar name={user.name} size={36} />
               <div className="user-info">
@@ -1496,7 +1497,7 @@ RULES:
         <main className="main-content">
           <section className="hero-section">
             <h2 className="section-title" data-testid="manager-title">Team Dashboard</h2>
-            <p className="section-subtitle">Monitor team health, track one-on-ones, and address wellbeing signals.</p>
+            <p className="section-subtitle">Monitor team health, track check-ins, and address wellbeing signals.</p>
           </section>
 
           <section className="content-section dark">
@@ -2437,7 +2438,7 @@ RULES:
       <div className="app-shell">
         <header className="app-header">
           <div className="header-content">
-            <h1 className="header-title" data-testid="app-title">PerformOS</h1>
+            <h1 className="header-title" data-testid="app-title">PerformOS · PulseCheck</h1>
             <div className="header-right">
               <Avatar name={user.name} size={36} />
               <div className="user-info">

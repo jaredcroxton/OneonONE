@@ -54,7 +54,7 @@ const apiCall = async (endpoint, options = {}) => {
   return res.json();
 };
 
-// QUESTIONS DEFINITION - 6 HUMAN QUESTIONS
+// QUESTIONS DEFINITION - 5 HUMAN QUESTIONS (removed energy/workload question)
 const QUESTIONS = [
   // Section 1: How things are going
   { id: 'proud_of', section: 'performance', label: "What went well for you this week? What's a win you want to share?", ratingLabel: 'How do you feel about your week?', low: 'Nothing comes to mind', high: 'Really proud of something' },
@@ -62,8 +62,7 @@ const QUESTIONS = [
   { id: 'need_from_manager', section: 'performance', label: 'How can your manager help you this week?', ratingLabel: 'How much support do you need?', low: "I'm all good", high: 'I really need support' },
   { id: 'feeling_about_work', section: 'performance', label: 'How are you feeling about your work right now?', ratingLabel: 'Overall feeling', low: 'Struggling', high: 'Really good' },
   // Section 2: How you're doing
-  { id: 'safe_to_raise_concerns', section: 'wellbeing', label: 'Do you feel comfortable speaking up in the team?', ratingLabel: 'How comfortable are you?', low: 'Not really', high: 'Completely' },
-  { id: 'workload_manageable', section: 'wellbeing', label: "How's your energy and workload right now?", ratingLabel: 'Your energy level', low: 'Running on empty', high: 'Good balance' }
+  { id: 'safe_to_raise_concerns', section: 'wellbeing', label: 'Do you feel comfortable speaking up in the team?', ratingLabel: 'How comfortable are you?', low: 'Not really', high: 'Completely' }
 ];
 
 const SECTION_HEADERS = {
@@ -369,10 +368,10 @@ function App() {
   const [formData, setFormData] = useState({});
   const [mySubmissions, setMySubmissions] = useState([]);
   
-  // Wellness Check-In State
+  // Wellness Check-In State (1-5 scale)
   const [wellnessMood, setWellnessMood] = useState('');
-  const [wellnessEnergy, setWellnessEnergy] = useState(5);
-  const [wellnessWorkload, setWellnessWorkload] = useState(5);
+  const [wellnessEnergy, setWellnessEnergy] = useState(3);
+  const [wellnessWorkload, setWellnessWorkload] = useState(3);
   const [wellnessComments, setWellnessComments] = useState('');
 
   // Manager State
@@ -557,14 +556,14 @@ function App() {
         // Load wellness check-in data if present
         if (submission.wellness_checkin) {
           setWellnessMood(submission.wellness_checkin.mood || '');
-          setWellnessEnergy(submission.wellness_checkin.energy_level || 5);
-          setWellnessWorkload(submission.wellness_checkin.workload_level || 5);
+          setWellnessEnergy(submission.wellness_checkin.energy_level || 3);
+          setWellnessWorkload(submission.wellness_checkin.workload_level || 3);
           setWellnessComments(submission.wellness_checkin.comments || '');
         } else {
           // Reset if no wellness data
           setWellnessMood('');
-          setWellnessEnergy(5);
-          setWellnessWorkload(5);
+          setWellnessEnergy(3);
+          setWellnessWorkload(3);
           setWellnessComments('');
         }
         setSelectedWeek(week);
@@ -573,8 +572,8 @@ function App() {
       // Open form for new submission - reset everything
       setFormData({});
       setWellnessMood('');
-      setWellnessEnergy(5);
-      setWellnessWorkload(5);
+      setWellnessEnergy(3);
+      setWellnessWorkload(3);
       setWellnessComments('');
       setSelectedWeek(week);
     }
@@ -635,8 +634,8 @@ function App() {
       setFormData({});
       // Reset wellness state
       setWellnessMood('');
-      setWellnessEnergy(5);
-      setWellnessWorkload(5);
+      setWellnessEnergy(3);
+      setWellnessWorkload(3);
       setWellnessComments('');
       await loadTeamMemberData();
     } catch (err) {
@@ -1501,116 +1500,118 @@ RULES:
                     <h3 className="wellness-title">How are you feeling today?</h3>
                     <p className="wellness-subtitle">Take a moment to check in with yourself</p>
                     
-                    <div className="wellness-card">
-                      {/* Current Mood */}
-                      <div className="wellness-input-group">
-                        <label className="wellness-label">Current Mood *</label>
-                        <div className="mood-buttons">
-                          <button
-                            type="button"
-                            className={`mood-btn ${wellnessMood === 'great' ? 'selected' : ''}`}
-                            onClick={() => !isViewingLocked && setWellnessMood('great')}
-                            disabled={isViewingLocked}
-                            data-testid="mood-great"
-                          >
-                            <span className="mood-emoji">😄</span>
-                            <span className="mood-label">Great</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`mood-btn ${wellnessMood === 'good' ? 'selected' : ''}`}
-                            onClick={() => !isViewingLocked && setWellnessMood('good')}
-                            disabled={isViewingLocked}
-                            data-testid="mood-good"
-                          >
-                            <span className="mood-emoji">🙂</span>
-                            <span className="mood-label">Good</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`mood-btn ${wellnessMood === 'okay' ? 'selected' : ''}`}
-                            onClick={() => !isViewingLocked && setWellnessMood('okay')}
-                            disabled={isViewingLocked}
-                            data-testid="mood-okay"
-                          >
-                            <span className="mood-emoji">😐</span>
-                            <span className="mood-label">Okay</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`mood-btn ${wellnessMood === 'stressed' ? 'selected' : ''}`}
-                            onClick={() => !isViewingLocked && setWellnessMood('stressed')}
-                            disabled={isViewingLocked}
-                            data-testid="mood-stressed"
-                          >
-                            <span className="mood-emoji">😰</span>
-                            <span className="mood-label">Stressed</span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`mood-btn ${wellnessMood === 'exhausted' ? 'selected' : ''}`}
-                            onClick={() => !isViewingLocked && setWellnessMood('exhausted')}
-                            disabled={isViewingLocked}
-                            data-testid="mood-exhausted"
-                          >
-                            <span className="mood-emoji">🥵</span>
-                            <span className="mood-label">Exhausted</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Energy Level */}
-                      <div className="wellness-input-group">
-                        <label className="wellness-label">Energy Level: {wellnessEnergy}/10</label>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={wellnessEnergy}
-                          onChange={(e) => setWellnessEnergy(parseInt(e.target.value))}
-                          className="wellness-slider energy-slider"
+                    {/* Current Mood */}
+                    <div className="wellness-input-group">
+                      <label className="wellness-label">Current Mood *</label>
+                      <div className="mood-buttons">
+                        <button
+                          type="button"
+                          className={`mood-btn ${wellnessMood === 'great' ? 'selected' : ''}`}
+                          onClick={() => !isViewingLocked && setWellnessMood('great')}
                           disabled={isViewingLocked}
-                          data-testid="energy-slider"
-                        />
-                        <div className="slider-labels">
-                          <span>Low</span>
-                          <span>Medium</span>
-                          <span>High</span>
-                        </div>
-                      </div>
-
-                      {/* Workload Level */}
-                      <div className="wellness-input-group">
-                        <label className="wellness-label">Workload Level: {wellnessWorkload}/10</label>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={wellnessWorkload}
-                          onChange={(e) => setWellnessWorkload(parseInt(e.target.value))}
-                          className="wellness-slider workload-slider"
+                          data-testid="mood-great"
+                        >
+                          <span className="mood-emoji">😄</span>
+                          <span className="mood-label">Great</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`mood-btn ${wellnessMood === 'good' ? 'selected' : ''}`}
+                          onClick={() => !isViewingLocked && setWellnessMood('good')}
                           disabled={isViewingLocked}
-                          data-testid="workload-slider"
-                        />
-                        <div className="slider-labels">
-                          <span>Light</span>
-                          <span>Moderate</span>
-                          <span>Heavy</span>
-                        </div>
-                      </div>
-
-                      {/* Additional Comments */}
-                      <div className="wellness-input-group">
-                        <label className="wellness-label">Additional Comments (Optional)</label>
-                        <textarea
-                          className="wellness-textarea"
-                          placeholder="Share any thoughts, challenges, or wins from your week..."
-                          value={wellnessComments}
-                          onChange={(e) => setWellnessComments(e.target.value)}
+                          data-testid="mood-good"
+                        >
+                          <span className="mood-emoji">🙂</span>
+                          <span className="mood-label">Good</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`mood-btn ${wellnessMood === 'okay' ? 'selected' : ''}`}
+                          onClick={() => !isViewingLocked && setWellnessMood('okay')}
                           disabled={isViewingLocked}
-                          data-testid="wellness-comments"
-                        />
+                          data-testid="mood-okay"
+                        >
+                          <span className="mood-emoji">😐</span>
+                          <span className="mood-label">Okay</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`mood-btn ${wellnessMood === 'stressed' ? 'selected' : ''}`}
+                          onClick={() => !isViewingLocked && setWellnessMood('stressed')}
+                          disabled={isViewingLocked}
+                          data-testid="mood-stressed"
+                        >
+                          <span className="mood-emoji">😰</span>
+                          <span className="mood-label">Stressed</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`mood-btn ${wellnessMood === 'exhausted' ? 'selected' : ''}`}
+                          onClick={() => !isViewingLocked && setWellnessMood('exhausted')}
+                          disabled={isViewingLocked}
+                          data-testid="mood-exhausted"
+                        >
+                          <span className="mood-emoji">🥵</span>
+                          <span className="mood-label">Exhausted</span>
+                        </button>
                       </div>
+                    </div>
+
+                    {/* Energy Level (1-5 scale with colored slider) */}
+                    <div className="wellness-input-group">
+                      <label className="wellness-label">Energy Level: {wellnessEnergy}/5</label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        value={wellnessEnergy}
+                        onChange={(e) => setWellnessEnergy(parseInt(e.target.value))}
+                        className="wellness-slider energy-slider"
+                        style={{
+                          background: `linear-gradient(to right, #14B8A6 0%, #14B8A6 ${((wellnessEnergy - 1) / 4) * 100}%, #374151 ${((wellnessEnergy - 1) / 4) * 100}%, #374151 100%)`
+                        }}
+                        disabled={isViewingLocked}
+                        data-testid="energy-slider"
+                      />
+                      <div className="slider-labels">
+                        <span>Low</span>
+                        <span>High</span>
+                      </div>
+                    </div>
+
+                    {/* Workload Level (1-5 scale with colored slider) */}
+                    <div className="wellness-input-group">
+                      <label className="wellness-label">Workload Level: {wellnessWorkload}/5</label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        value={wellnessWorkload}
+                        onChange={(e) => setWellnessWorkload(parseInt(e.target.value))}
+                        className="wellness-slider workload-slider"
+                        style={{
+                          background: `linear-gradient(to right, #14B8A6 0%, #14B8A6 ${((wellnessWorkload - 1) / 4) * 100}%, #374151 ${((wellnessWorkload - 1) / 4) * 100}%, #374151 100%)`
+                        }}
+                        disabled={isViewingLocked}
+                        data-testid="workload-slider"
+                      />
+                      <div className="slider-labels">
+                        <span>Low</span>
+                        <span>High</span>
+                      </div>
+                    </div>
+
+                    {/* Additional Comments */}
+                    <div className="wellness-input-group">
+                      <label className="wellness-label">Additional Comments (Optional)</label>
+                      <textarea
+                        className="wellness-textarea"
+                        placeholder="Share any thoughts, challenges, or wins from your week..."
+                        value={wellnessComments}
+                        onChange={(e) => setWellnessComments(e.target.value)}
+                        disabled={isViewingLocked}
+                        data-testid="wellness-comments"
+                      />
                     </div>
                   </div>
 

@@ -3973,6 +3973,7 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
   -webkit-appearance: none;
   margin-bottom: 8px;
+  /* Background set via inline style for dynamic coloring */
 }
 
 .wellness-slider::-webkit-slider-thumb {
@@ -3981,7 +3982,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #3B82F6;
+  background: #14B8A6;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
@@ -3991,20 +3992,10 @@ h1, h2, h3, h4, h5, h6 {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #3B82F6;
+  background: #14B8A6;
   border: 2px solid white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-}
-
-/* Energy Slider (red → green) */
-.energy-slider {
-  background: linear-gradient(to right, #EF4444, #F59E0B, #22C55E);
-}
-
-/* Workload Slider (green → red, reversed) */
-.workload-slider {
-  background: linear-gradient(to right, #22C55E, #F59E0B, #EF4444);
 }
 
 .slider-labels {

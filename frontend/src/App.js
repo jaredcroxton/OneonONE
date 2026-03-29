@@ -140,14 +140,12 @@ function TrendCard({ metricKey, submissions, dark, compact, hideLabel = false })
   const wellbeingLabels = {
     feeling_about_work: "Feeling about work",
     safe_to_raise_concerns: "Speaking up",
-    workload_manageable: "Energy & workload",
     proud_of: "Weekly wins"
   };
   
   const wellbeingSubs = {
     feeling_about_work: "How are you feeling about work?",
     safe_to_raise_concerns: "Do you feel comfortable speaking up?",
-    workload_manageable: "How's your energy level?",
     proud_of: "What went well this week?"
   };
   
@@ -255,7 +253,7 @@ function MiniTrendBars({ data }) {
 }
 
 function ScoreChips({ submission }) {
-  const metrics = ['feeling_about_work', 'safe_to_raise_concerns', 'workload_manageable'];
+  const metrics = ['feeling_about_work', 'safe_to_raise_concerns'];
   return (
     <div className="score-chips">
       {metrics.map(metric => {
@@ -663,7 +661,7 @@ function App() {
   const getHealthStatus = (recentSubmissions) => {
     if (recentSubmissions.length === 0) return 'unknown';
     const latest = recentSubmissions[recentSubmissions.length - 1];
-    const avgWellbeing = ['feeling_about_work', 'safe_to_raise_concerns', 'feel_supported', 'workload_manageable']
+    const avgWellbeing = ['feeling_about_work', 'safe_to_raise_concerns']
       .map(field => latest.responses?.[field]?.rating || 0)
       .filter(r => r > 0)
       .reduce((sum, r) => sum + r, 0) / 4;
@@ -948,7 +946,7 @@ function App() {
         if (memberSubs.length === 0) return null;
         
         const latest = memberSubs[memberSubs.length - 1];
-        const wellbeingMetrics = ['feeling_about_work', 'safe_to_raise_concerns', 'feel_supported', 'workload_manageable', 'target_confidence'];
+        const wellbeingMetrics = ['feeling_about_work', 'safe_to_raise_concerns', 'proud_of'];
         
         const scores = {};
         const trends = {};
@@ -972,7 +970,7 @@ function App() {
           scores,
           trends,
           flags: memberFlags.map(f => ({ severity: f.severity, signal: f.signal, category: f.category })),
-          latestComment: latest.responses?.feeling_about_work?.comment || latest.responses?.workload_manageable?.comment || ''
+          latestComment: latest.responses?.feeling_about_work?.comment || latest.responses?.safe_to_raise_concerns?.comment || ''
         };
       }).filter(Boolean);
 
@@ -986,7 +984,7 @@ TEAM DATA:
 ${teamData.map(m => `
 - ${m.name}, ${m.title}
 - Health score: ${m.healthScore}/100
-- Scores (avg): feeling=${m.scores.feeling_about_work || 'N/A'}, safety=${m.scores.safe_to_raise_concerns || 'N/A'}, support=${m.scores.feel_supported || 'N/A'}, workload=${m.scores.workload_manageable || 'N/A'}, confidence=${m.scores.target_confidence || 'N/A'}
+- Scores (avg): feeling=${m.scores.feeling_about_work || 'N/A'}, speaking_up=${m.scores.safe_to_raise_concerns || 'N/A'}, target_confidence=${m.scores.target_confidence || 'N/A'}
 - Trends: ${Object.entries(m.trends).map(([k, v]) => `${k}:${v}`).join(', ')}
 - Active flags: ${m.flags.length > 0 ? m.flags.map(f => `${f.severity} - ${f.signal}`).join('; ') : 'None'}
 - Latest comment: "${m.latestComment}"
@@ -1080,7 +1078,7 @@ RULES:
         const memberSubs = allSubmissions.filter(s => s.member_id === member._id).sort((a, b) => a.date.localeCompare(b.date));
         if (memberSubs.length < 2) return null;
 
-        const wellbeingMetrics = ['feeling_about_work', 'safe_to_raise_concerns', 'workload_manageable'];
+        const wellbeingMetrics = ['feeling_about_work', 'safe_to_raise_concerns', 'proud_of'];
         const trends = {};
         wellbeingMetrics.forEach(metric => {
           const values = memberSubs.map(s => s.responses?.[metric]?.rating).filter(Boolean);
@@ -1425,11 +1423,9 @@ RULES:
                     <div className="trends-primary">
                       <TrendCard metricKey="feeling_about_work" submissions={mySubmissions} dark={true} />
                       <TrendCard metricKey="safe_to_raise_concerns" submissions={mySubmissions} dark={true} hideLabel={true} />
-                      <TrendCard metricKey="feel_supported" submissions={mySubmissions} dark={true} />
                     </div>
                     <div className="trends-secondary">
-                      <TrendCard metricKey="workload_manageable" submissions={mySubmissions} dark={true} compact={true} />
-                      <TrendCard metricKey="target_confidence" submissions={mySubmissions} dark={true} compact={true} />
+                      <TrendCard metricKey="proud_of" submissions={mySubmissions} dark={true} compact={true} />
                     </div>
                   </div>
 

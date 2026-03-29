@@ -138,7 +138,7 @@ async def detect_flags_for_submission(submission_id: str, member_id: str, member
         mood = wellness_checkin.get("mood", "")
         mood_score = wellness_checkin.get("mood_score", 3)
         energy_level = wellness_checkin.get("energy_level", 5)
-        workload_level = wellness_checkin.get("workload_level", 5)
+        target_confidence = wellness_checkin.get("target_confidence", 3)
         wellness_comments = wellness_checkin.get("comments", "")
         
         # Rule 1: Mood is "Stressed" or "Exhausted" triggers wellbeing flag

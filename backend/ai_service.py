@@ -98,7 +98,7 @@ async def analyze_risk(member_name: str, member_title: str, reflection: Dict,
                     "properties": {
                         "category": {
                             "type": "string",
-                            "enum": ["wellbeing", "psychological_safety", "workload", "engagement", "team_dynamics"]
+                            "enum": ["wellbeing", "psychological_safety", "performance", "engagement", "team_dynamics"]
                         },
                         "severity": {
                             "type": "string",
@@ -128,15 +128,17 @@ Do NOT over-flag. Only flag when there is a genuine signal. Normal work frustrat
 Team member: {member_name} ({member_title})
 
 Current reflection:
-- Most proud of: {reflection.get('proud_of', 'Not provided')}
-- Where stuck: {reflection.get('stuck_on', 'Not provided')}
-- Need from manager: {reflection.get('need_from_manager', 'Not provided')}
-- Target confidence: {reflection.get('target_confidence', 'N/A')}/5
-- Feeling about work: {reflection.get('feeling_about_work', 'N/A')}/5
-- Safe to raise concerns: {reflection.get('safe_to_raise_concerns', 'N/A')}/5
-- Feel supported: {reflection.get('feel_supported', 'N/A')}/5
-- Workload manageable: {reflection.get('workload_manageable', 'N/A')}/5
-- Anything affecting work: {reflection.get('anything_affecting', 'Not provided')}
+- Week feeling: {reflection.get('proud_of', {}).get('rating', 'N/A')}/5 (1 = tough week, 5 = great week)
+- Blocked: {reflection.get('stuck_on', {}).get('rating', 'N/A')}/5 (1 = all clear, 5 = completely stuck)
+- Manager support needed: {reflection.get('need_from_manager', {}).get('rating', 'N/A')}/5 (1 = all good, 5 = could use a hand)
+- Feeling about work: {reflection.get('feeling_about_work', {}).get('rating', 'N/A')}/5 (1 = not great, 5 = really good)
+- Speaking up: {reflection.get('safe_to_raise_concerns', {}).get('rating', 'N/A')}/5 (1 = holds back, 5 = speaks freely)
+
+Wellness check-in:
+- Mood: {reflection.get('wellness_checkin', {}).get('mood', 'N/A')}
+- Energy: {reflection.get('wellness_checkin', {}).get('energy_level', 'N/A')}/5 (1 = low, 5 = high)
+- Target confidence: {reflection.get('wellness_checkin', {}).get('target_confidence', 'N/A')}/5 (1 = behind, 5 = on track)
+- Comments: {reflection.get('wellness_checkin', {}).get('comments', 'None')}
 
 Previous session scores:
 {json.dumps(prev_sessions, indent=2) if prev_sessions else 'No previous sessions'}
@@ -149,7 +151,7 @@ Respond in JSON only (the response will be automatically parsed):
 - summary: one sentence summary of the overall tone
 
 Remember:
-- Category must be one of: wellbeing, psychological_safety, workload, engagement, team_dynamics
+- Category must be one of: wellbeing, psychological_safety, performance, engagement, team_dynamics
 - Severity must be one of: watch, concern, action_required
 - Use action_required for scores of 1-2 or significant concerns
 - Use concern for declining trends or scores of 3
@@ -184,15 +186,16 @@ If there are concerning responses, suggest a gentle way to open that topic witho
 Team member: {member_name} ({member_title})
 
 Pre-meeting reflection:
-- Most proud of: {reflection.get('proud_of', 'Not provided')}
-- Where stuck: {reflection.get('stuck_on', 'Not provided')}
-- Need from manager: {reflection.get('need_from_manager', 'Not provided')}
-- Target confidence: {reflection.get('target_confidence', 'N/A')}/5
-- Feeling about work: {reflection.get('feeling_about_work', 'N/A')}/5
-- Safe to raise concerns: {reflection.get('safe_to_raise_concerns', 'N/A')}/5
-- Feel supported: {reflection.get('feel_supported', 'N/A')}/5
-- Workload manageable: {reflection.get('workload_manageable', 'N/A')}/5
-{f"- Anything affecting work: {reflection.get('anything_affecting', '')}" if reflection.get('anything_affecting') else ''}
+- Week feeling: {reflection.get('proud_of', {}).get('rating', 'N/A')}/5 (1 = tough week, 5 = great week)
+- Blocked: {reflection.get('stuck_on', {}).get('rating', 'N/A')}/5 (1 = all clear, 5 = completely stuck)
+- Manager support needed: {reflection.get('need_from_manager', {}).get('rating', 'N/A')}/5 (1 = all good, 5 = could use a hand)
+- Feeling about work: {reflection.get('feeling_about_work', {}).get('rating', 'N/A')}/5 (1 = not great, 5 = really good)
+- Speaking up: {reflection.get('safe_to_raise_concerns', {}).get('rating', 'N/A')}/5 (1 = holds back, 5 = speaks freely)
+
+Wellness check-in:
+- Mood: {reflection.get('wellness_checkin', {}).get('mood', 'N/A')}
+- Energy: {reflection.get('wellness_checkin', {}).get('energy_level', 'N/A')}/5 (1 = low, 5 = high)
+- Target confidence: {reflection.get('wellness_checkin', {}).get('target_confidence', 'N/A')}/5 (1 = behind, 5 = on track)
 
 Active flags: {json.dumps([f"{f['category']}: {f['signal']}" for f in flags]) if flags else 'None'}
 

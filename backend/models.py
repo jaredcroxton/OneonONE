@@ -73,6 +73,13 @@ class ResponseItem(BaseModel):
     rating: int  # 1-5
     comment: str
 
+class WellnessCheckin(BaseModel):
+    mood: str  # "great", "good", "okay", "stressed", "exhausted"
+    mood_score: int  # 5, 4, 3, 2, 1
+    energy_level: int  # 1-10
+    workload_level: int  # 1-10
+    comments: Optional[str] = ""
+
 class WeeklyReflection(BaseModel):
     # Performance questions
     proud_of: Optional[ResponseItem] = None
@@ -90,6 +97,7 @@ class SubmissionBase(BaseModel):
     member_id: str
     date: str  # Monday date (YYYY-MM-DD)
     responses: WeeklyReflection
+    wellness_checkin: Optional[WellnessCheckin] = None  # NEW: Wellness data
     submitted_at: Optional[str] = None
     locked: Optional[str] = None  # Timestamp when submission was locked
 

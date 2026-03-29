@@ -1,4 +1,4 @@
-/* PerformOS One-on-One Builder V3 - Complete Design System */
+/* PerformOS PulseCheck 360 - Complete Design System */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 
 :root {
@@ -3865,4 +3865,262 @@ h1, h2, h3, h4, h5, h6 {
   .week-action-footer {
     padding-left: 0;
   }
+}
+
+/* ============================================================
+   WELLNESS CHECK-IN STYLES
+   ============================================================ */
+
+.wellness-checkin-section {
+  margin-bottom: 32px;
+}
+
+.wellness-title {
+  font-size: 28px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  color: #06B6D4;
+  margin-bottom: 8px;
+}
+
+.wellness-subtitle {
+  font-size: 15px;
+  color: #6B7280;
+  margin-bottom: 24px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.wellness-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #E5E7EB;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.wellness-input-group {
+  margin-bottom: 28px;
+}
+
+.wellness-input-group:last-child {
+  margin-bottom: 0;
+}
+
+.wellness-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 12px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Mood Buttons */
+.mood-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mood-btn {
+  width: 100px;
+  height: 90px;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.mood-btn:hover:not(:disabled) {
+  border-color: #06B6D4;
+  background: #F9FAFB;
+}
+
+.mood-btn.selected {
+  border: 2px solid #06B6D4;
+  background: rgba(6, 182, 212, 0.05);
+  transform: scale(1.02);
+}
+
+.mood-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mood-emoji {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.mood-label {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Sliders */
+.wellness-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  -webkit-appearance: none;
+  margin-bottom: 8px;
+}
+
+.wellness-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3B82F6;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.wellness-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3B82F6;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+/* Energy Slider (red → green) */
+.energy-slider {
+  background: linear-gradient(to right, #EF4444, #F59E0B, #22C55E);
+}
+
+/* Workload Slider (green → red, reversed) */
+.workload-slider {
+  background: linear-gradient(to right, #22C55E, #F59E0B, #EF4444);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #6B7280;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Wellness Textarea */
+.wellness-textarea {
+  width: 100%;
+  min-height: 100px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  padding: 14px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  color: #1F2937;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.wellness-textarea:focus {
+  outline: none;
+  border-color: #06B6D4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.wellness-textarea::placeholder {
+  color: #9CA3AF;
+}
+
+.wellness-textarea:disabled {
+  background: #F3F4F6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mood-buttons {
+    gap: 8px;
+  }
+  
+  .mood-btn {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .mood-emoji {
+    font-size: 28px;
+  }
+  
+  .wellness-card {
+    padding: 24px;
+  }
+}
+
+/* ============================================================
+   MOOD EMOJI INLINE (Manager Schedule Tab)
+   ============================================================ */
+
+.member-info-with-mood {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mood-emoji-inline {
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+/* ============================================================
+   MOOD HISTORY (Team Member 30-day view)
+   ============================================================ */
+
+.mood-history-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mood-history-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-on-dark);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mood-history-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mood-history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mood-history-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.mood-history-date {
+  font-size: 11px;
+  color: var(--text-on-dark-muted);
+  font-weight: 500;
 }

@@ -28,7 +28,7 @@ CURRENT_WEEK = "2026-03-23"  # The "THIS WEEK" for demo purposes
 # Get allowed origins from environment or use defaults
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://performos.digital,http://localhost:3000,https://team-health-hub-2.preview.emergentagent.com").split(",")
 
-app = FastAPI(title="PerformOS One-on-One Builder V2 API")
+app = FastAPI(title="PerformOS PulseCheck 360 API")
 
 # CORS middleware - use environment variable for flexibility
 app.add_middleware(
@@ -109,7 +109,7 @@ async def startup_event():
 # Root API endpoint moved - now served by React catch-all
 # @app.get("/")
 # async def root():
-#     return {"message": "PerformOS One-on-One Builder V2 API", "status": "running", "current_week": CURRENT_WEEK}
+#     return {"message": "PerformOS PulseCheck 360 API", "status": "running", "current_week": CURRENT_WEEK}
 
 
 # ============================================================
@@ -350,13 +350,15 @@ async def create_submission(submission_data: SubmissionCreate, current_user: dic
     result = await submissions_collection.insert_one(submission_dict)
     submission_id = str(result.inserted_id)
     
-    # Detect flags
+    # Detect flags (including wellness check-in data)
+    wellness_data = submission_data.wellness_checkin.model_dump() if submission_data.wellness_checkin else None
     flags = await detect_flags_for_submission(
         submission_id=submission_id,
         member_id=member["_id"],
         member_name=member["name"],
         date=submission_data.date,
-        responses=submission_data.responses.model_dump()
+        responses=submission_data.responses.model_dump(),
+        wellness_checkin=wellness_data
     )
     
     # Insert flags
@@ -598,6 +600,11 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
                 rating = responses[field].get("rating")
                 if rating:
                     scores.append(rating)
+        
+        # Add mood score from wellness check-in
+        wellness = sub.get("wellness_checkin", {})
+        if wellness and wellness.get("mood_score"):
+            scores.append(wellness["mood_score"])
         
         if scores:
             member_health = (sum(scores) / len(scores) / 5) * 100

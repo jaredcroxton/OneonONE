@@ -4,7 +4,8 @@ from database import submissions_collection, flags_collection
 
 
 async def detect_flags_for_submission(submission_id: str, member_id: str, member_name: str, 
-                                      date: str, responses: Dict[str, Dict[str, Any]]) -> List[Dict]:
+                                      date: str, responses: Dict[str, Dict[str, Any]], 
+                                      wellness_checkin: Dict[str, Any] = None) -> List[Dict]:
     """Detect flags from a submission using rule-based analysis on rating+comment pairs"""
     flags = []
     
@@ -134,6 +135,80 @@ async def detect_flags_for_submission(submission_id: str, member_id: str, member
                         "status": "open"
                     })
                 break
+    
+    # WELLNESS CHECK-IN FLAG DETECTION
+    if wellness_checkin:
+        mood = wellness_checkin.get("mood", "")
+        mood_score = wellness_checkin.get("mood_score", 3)
+        energy_level = wellness_checkin.get("energy_level", 5)
+        workload_level = wellness_checkin.get("workload_level", 5)
+        wellness_comments = wellness_checkin.get("comments", "")
+        
+        # Rule 1: Mood is "Stressed" or "Exhausted" triggers wellbeing flag
+        if mood in ["stressed", "exhausted"]:
+            severity = "action_required" if mood == "exhausted" else "concern"
+            
+            # Upgrade to action_required if mood is exhausted AND energy <= 3
+            if mood == "exhausted" and energy_level <= 3:
+                severity = "action_required"
+            
+            signal = f"Mood selected: {mood.capitalize()} ({mood_score}/5)"
+            if energy_level <= 3:
+                signal += f", Energy at {energy_level}/10"
+            if wellness_comments:
+                signal += f" - {wellness_comments[:100]}"
+            
+            # Check if we already have a wellbeing flag to avoid duplicates
+            has_wellbeing_flag = any(f["category"] == "wellbeing" for f in flags)
+            if not has_wellbeing_flag:
+                flags.append({
+                    "member_id": member_id,
+                    "submission_id": submission_id,
+                    "date": date,
+                    "category": "wellbeing",
+                    "severity": severity,
+                    "signal": signal,
+                    "comment_snippet": wellness_comments[:150] if wellness_comments else None,
+                    "status": "open"
+                })
+        
+        # Rule 2: Energy <= 3 triggers wellbeing flag
+        if energy_level <= 3:
+            has_wellbeing_flag = any(f["category"] == "wellbeing" for f in flags)
+            if not has_wellbeing_flag:
+                signal = f"Energy level at {energy_level}/10 (Low)"
+                if mood:
+                    signal += f", Mood: {mood.capitalize()}"
+                
+                flags.append({
+                    "member_id": member_id,
+                    "submission_id": submission_id,
+                    "date": date,
+                    "category": "wellbeing",
+                    "severity": "concern",
+                    "signal": signal,
+                    "comment_snippet": wellness_comments[:150] if wellness_comments else None,
+                    "status": "open"
+                })
+        
+        # Rule 3: Workload >= 8 triggers workload flag
+        if workload_level >= 8:
+            has_workload_flag = any(f["category"] == "workload" for f in flags)
+            if not has_workload_flag:
+                signal = f"Workload level at {workload_level}/10 (Heavy)"
+                if wellness_comments:
+                    signal += f" - {wellness_comments[:100]}"
+                
+                flags.append({
+                    "member_id": member_id,
+                    "submission_id": submission_id,
+                    "date": date,
+                    "category": "workload",
+                    "severity": "concern",
+                    "signal": signal,
+                    "comment_snippet": wellness_comments[:150] if wellness_comments else None,
+                    "status": "open"
+                })
     
     return flags
 

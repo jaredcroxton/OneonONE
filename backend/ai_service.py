@@ -121,7 +121,7 @@ async def analyze_risk(member_name: str, member_title: str, reflection: Dict,
         "additionalProperties": False
     }
     
-    prompt = f"""You are a workplace psychological safety analyst. Analyse the following responses from a team member's one-on-one reflection. Your job is to detect early warning signs of psychological safety risks, wellbeing concerns, burnout, disengagement, isolation, or team conflict.
+    prompt = f"""You are a workplace psychological safety analyst. Analyse the following responses from a team member's weekly check-in. Your job is to detect early warning signs of psychological safety risks, wellbeing concerns, burnout, disengagement, isolation, or team conflict.
 
 Do NOT over-flag. Only flag when there is a genuine signal. Normal work frustration is not a flag. A bad day is not a flag. Look for patterns that suggest something deeper.
 
@@ -177,7 +177,7 @@ async def generate_conversation_starters(member_name: str, member_title: str,
         "additionalProperties": False
     }
     
-    prompt = f"""You are a leadership coach helping a manager prepare for a one-on-one conversation. Based on the team member's pre-meeting reflection below, suggest 2-3 natural conversation starters the manager could use. These should feel human and genuine, not scripted or clinical. Focus on opening dialogue, not interrogating.
+    prompt = f"""You are a leadership coach helping a manager prepare for a check-in conversation. Based on the team member's pre-meeting reflection below, suggest 2-3 natural conversation starters the manager could use. These should feel human and genuine, not scripted or clinical. Focus on opening dialogue, not interrogating.
 
 If there are concerning responses, suggest a gentle way to open that topic without making the team member feel investigated.
 
@@ -232,7 +232,7 @@ async def generate_session_summary(manager_notes: Dict, actions: List[Dict]) -> 
         "additionalProperties": False
     }
     
-    prompt = f"""You are a workplace assistant. Summarise the following one-on-one session notes into a clean, professional summary. Include: key discussion points, agreed actions with owners, follow-up items, and overall tone of the conversation.
+    prompt = f"""You are a workplace assistant. Summarise the following check-in session notes into a clean, professional summary. Include: key discussion points, agreed actions with owners, follow-up items, and overall tone of the conversation.
 
 Keep it concise — 4-6 sentences maximum. Do not editorialize. Do not add opinions. Just summarise what was discussed and agreed.
 

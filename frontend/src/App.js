@@ -368,6 +368,12 @@ function App() {
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [formData, setFormData] = useState({});
   const [mySubmissions, setMySubmissions] = useState([]);
+  
+  // Wellness Check-In State
+  const [wellnessMood, setWellnessMood] = useState('');
+  const [wellnessEnergy, setWellnessEnergy] = useState(5);
+  const [wellnessWorkload, setWellnessWorkload] = useState(5);
+  const [wellnessComments, setWellnessComments] = useState('');
 
   // Manager State
   const [managerTab, setManagerTab] = useState('schedule');
@@ -548,11 +554,28 @@ function App() {
       const submission = mySubmissions.find(s => s.date === week);
       if (submission) {
         setFormData(submission.responses || {});
+        // Load wellness check-in data if present
+        if (submission.wellness_checkin) {
+          setWellnessMood(submission.wellness_checkin.mood || '');
+          setWellnessEnergy(submission.wellness_checkin.energy_level || 5);
+          setWellnessWorkload(submission.wellness_checkin.workload_level || 5);
+          setWellnessComments(submission.wellness_checkin.comments || '');
+        } else {
+          // Reset if no wellness data
+          setWellnessMood('');
+          setWellnessEnergy(5);
+          setWellnessWorkload(5);
+          setWellnessComments('');
+        }
         setSelectedWeek(week);
       }
     } else {
-      // Open form for new submission
+      // Open form for new submission - reset everything
       setFormData({});
+      setWellnessMood('');
+      setWellnessEnergy(5);
+      setWellnessWorkload(5);
+      setWellnessComments('');
       setSelectedWeek(week);
     }
   };
@@ -563,6 +586,13 @@ function App() {
     setError('');
 
     try {
+      // Validate wellness check-in (mood required)
+      if (!wellnessMood) {
+        setError('Please select your current mood before submitting.');
+        setLoading(false);
+        return;
+      }
+
       // Validate all required questions
       const missingFields = QUESTIONS.filter(q => !q.optional).filter(q => {
         const val = formData[q.id];
@@ -570,23 +600,44 @@ function App() {
       });
 
       if (missingFields.length > 0) {
-        setError('Please complete all required questions with both a rating and comment.');
+        setError('Please complete all required questions with ratings.');
         setLoading(false);
         return;
       }
+
+      // Map mood to numeric score
+      const moodScoreMap = {
+        'great': 5,
+        'good': 4,
+        'okay': 3,
+        'stressed': 2,
+        'exhausted': 1
+      };
 
       await apiCall('/api/submissions', {
         method: 'POST',
         body: JSON.stringify({
           member_id: 'placeholder',
           date: selectedWeek,
-          responses: formData
+          responses: formData,
+          wellness_checkin: {
+            mood: wellnessMood,
+            mood_score: moodScoreMap[wellnessMood],
+            energy_level: wellnessEnergy,
+            workload_level: wellnessWorkload,
+            comments: wellnessComments
+          }
         })
       });
 
       showToast('Reflection submitted successfully!', 'success');
       setSelectedWeek(null);
       setFormData({});
+      // Reset wellness state
+      setWellnessMood('');
+      setWellnessEnergy(5);
+      setWellnessWorkload(5);
+      setWellnessComments('');
       await loadTeamMemberData();
     } catch (err) {
       setError(err.message);
@@ -1375,6 +1426,30 @@ RULES:
                     </div>
                   </div>
 
+                  {/* 30-DAY MOOD HISTORY */}
+                  <div className="mood-history-section">
+                    <h4 className="mood-history-title">Your Mood History (Last 8 Weeks)</h4>
+                    <div className="mood-history-row">
+                      {mySubmissions
+                        .sort((a, b) => a.date.localeCompare(b.date))
+                        .slice(-8)
+                        .map((sub, idx) => {
+                          const moodEmoji = sub.wellness_checkin?.mood ? 
+                            (sub.wellness_checkin.mood === 'great' ? '😄' :
+                             sub.wellness_checkin.mood === 'good' ? '🙂' :
+                             sub.wellness_checkin.mood === 'okay' ? '😐' :
+                             sub.wellness_checkin.mood === 'stressed' ? '😰' :
+                             sub.wellness_checkin.mood === 'exhausted' ? '🥵' : '—') : '—';
+                          return (
+                            <div key={idx} className="mood-history-item" title={`${formatDateShort(sub.date)}: ${sub.wellness_checkin?.mood || 'No data'}`}>
+                              <span className="mood-history-emoji">{moodEmoji}</span>
+                              <span className="mood-history-date">{formatDateShort(sub.date)}</span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
                   <div className="privacy-note">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10"></circle>
@@ -1420,6 +1495,124 @@ RULES:
 
                 <form className="reflection-form" onSubmit={handleSubmitReflection} data-testid="reflection-form">
                   {error && <div className="error-message" data-testid="reflection-error">{error}</div>}
+
+                  {/* WELLNESS CHECK-IN SECTION - AT THE TOP */}
+                  <div className="wellness-checkin-section" data-testid="wellness-checkin-section">
+                    <h3 className="wellness-title">How are you feeling today?</h3>
+                    <p className="wellness-subtitle">Take a moment to check in with yourself</p>
+                    
+                    <div className="wellness-card">
+                      {/* Current Mood */}
+                      <div className="wellness-input-group">
+                        <label className="wellness-label">Current Mood *</label>
+                        <div className="mood-buttons">
+                          <button
+                            type="button"
+                            className={`mood-btn ${wellnessMood === 'great' ? 'selected' : ''}`}
+                            onClick={() => !isViewingLocked && setWellnessMood('great')}
+                            disabled={isViewingLocked}
+                            data-testid="mood-great"
+                          >
+                            <span className="mood-emoji">😄</span>
+                            <span className="mood-label">Great</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mood-btn ${wellnessMood === 'good' ? 'selected' : ''}`}
+                            onClick={() => !isViewingLocked && setWellnessMood('good')}
+                            disabled={isViewingLocked}
+                            data-testid="mood-good"
+                          >
+                            <span className="mood-emoji">🙂</span>
+                            <span className="mood-label">Good</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mood-btn ${wellnessMood === 'okay' ? 'selected' : ''}`}
+                            onClick={() => !isViewingLocked && setWellnessMood('okay')}
+                            disabled={isViewingLocked}
+                            data-testid="mood-okay"
+                          >
+                            <span className="mood-emoji">😐</span>
+                            <span className="mood-label">Okay</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mood-btn ${wellnessMood === 'stressed' ? 'selected' : ''}`}
+                            onClick={() => !isViewingLocked && setWellnessMood('stressed')}
+                            disabled={isViewingLocked}
+                            data-testid="mood-stressed"
+                          >
+                            <span className="mood-emoji">😰</span>
+                            <span className="mood-label">Stressed</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`mood-btn ${wellnessMood === 'exhausted' ? 'selected' : ''}`}
+                            onClick={() => !isViewingLocked && setWellnessMood('exhausted')}
+                            disabled={isViewingLocked}
+                            data-testid="mood-exhausted"
+                          >
+                            <span className="mood-emoji">🥵</span>
+                            <span className="mood-label">Exhausted</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Energy Level */}
+                      <div className="wellness-input-group">
+                        <label className="wellness-label">Energy Level: {wellnessEnergy}/10</label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={wellnessEnergy}
+                          onChange={(e) => setWellnessEnergy(parseInt(e.target.value))}
+                          className="wellness-slider energy-slider"
+                          disabled={isViewingLocked}
+                          data-testid="energy-slider"
+                        />
+                        <div className="slider-labels">
+                          <span>Low</span>
+                          <span>Medium</span>
+                          <span>High</span>
+                        </div>
+                      </div>
+
+                      {/* Workload Level */}
+                      <div className="wellness-input-group">
+                        <label className="wellness-label">Workload Level: {wellnessWorkload}/10</label>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={wellnessWorkload}
+                          onChange={(e) => setWellnessWorkload(parseInt(e.target.value))}
+                          className="wellness-slider workload-slider"
+                          disabled={isViewingLocked}
+                          data-testid="workload-slider"
+                        />
+                        <div className="slider-labels">
+                          <span>Light</span>
+                          <span>Moderate</span>
+                          <span>Heavy</span>
+                        </div>
+                      </div>
+
+                      {/* Additional Comments */}
+                      <div className="wellness-input-group">
+                        <label className="wellness-label">Additional Comments (Optional)</label>
+                        <textarea
+                          className="wellness-textarea"
+                          placeholder="Share any thoughts, challenges, or wins from your week..."
+                          value={wellnessComments}
+                          onChange={(e) => setWellnessComments(e.target.value)}
+                          disabled={isViewingLocked}
+                          data-testid="wellness-comments"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="questions-section">
                     {QUESTIONS.filter(q => q.section === 'performance').map(question => (
@@ -1583,12 +1776,23 @@ RULES:
                           const thisWeekSubmission = memberSubmissions.find(s => s.date === CURRENT_WEEK);
                           const hasSubmitted = !!thisWeekSubmission;
                           
+                          // Get mood emoji from wellness check-in
+                          const moodEmoji = thisWeekSubmission?.wellness_checkin?.mood ? 
+                            (thisWeekSubmission.wellness_checkin.mood === 'great' ? '😄' :
+                             thisWeekSubmission.wellness_checkin.mood === 'good' ? '🙂' :
+                             thisWeekSubmission.wellness_checkin.mood === 'okay' ? '😐' :
+                             thisWeekSubmission.wellness_checkin.mood === 'stressed' ? '😰' :
+                             thisWeekSubmission.wellness_checkin.mood === 'exhausted' ? '🥵' : '') : '';
+                          
                           return (
                             <tr key={member._id} data-testid={`member-row-${member._id}`}>
                               <td>
                                 <div className="member-cell">
                                   <Avatar name={member.name} size={40} healthStatus={healthStatus} />
-                                  <span className="member-name">{member.name}</span>
+                                  <div className="member-info-with-mood">
+                                    <span className="member-name">{member.name}</span>
+                                    {moodEmoji && <span className="mood-emoji-inline" title={`Mood: ${thisWeekSubmission.wellness_checkin.mood}`}>{moodEmoji}</span>}
+                                  </div>
                                 </div>
                               </td>
                               <td>{member.title}</td>

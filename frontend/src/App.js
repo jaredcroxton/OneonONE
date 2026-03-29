@@ -54,15 +54,15 @@ const apiCall = async (endpoint, options = {}) => {
   return res.json();
 };
 
-// QUESTIONS DEFINITION - 5 HUMAN QUESTIONS (removed energy/workload question)
+// QUESTIONS DEFINITION - 5 HUMAN QUESTIONS
 const QUESTIONS = [
   // Section 1: How things are going
-  { id: 'proud_of', section: 'performance', label: "What went well for you this week? What's a win you want to share?", ratingLabel: 'How do you feel about your week?', low: 'Nothing comes to mind', high: 'Really proud of something' },
-  { id: 'stuck_on', section: 'performance', label: "What's slowing you down or getting in the way?", ratingLabel: 'How blocked do you feel?', low: 'Nothing really', high: 'Significantly blocked' },
-  { id: 'need_from_manager', section: 'performance', label: 'How can your manager help you this week?', ratingLabel: 'How much support do you need?', low: "I'm all good", high: 'I really need support' },
-  { id: 'feeling_about_work', section: 'performance', label: 'How are you feeling about your work right now?', ratingLabel: 'Overall feeling', low: 'Struggling', high: 'Really good' },
+  { id: 'proud_of', section: 'performance', label: "What went well for you this week? What's a win you want to share?", ratingLabel: 'How was your week?', low: 'Tough week', high: 'Great week' },
+  { id: 'stuck_on', section: 'performance', label: "What's slowing you down or getting in the way?", ratingLabel: 'How blocked are you?', low: 'All clear', high: 'Completely stuck' },
+  { id: 'need_from_manager', section: 'performance', label: 'How can your manager help you this week?', ratingLabel: 'What do you need right now?', low: 'All good', high: 'Could use a hand' },
+  { id: 'feeling_about_work', section: 'performance', label: 'How are you feeling about your work right now?', ratingLabel: 'Where are you at?', low: 'Not great', high: 'Really good' },
   // Section 2: How you're doing
-  { id: 'safe_to_raise_concerns', section: 'wellbeing', label: 'Do you feel comfortable speaking up in the team?', ratingLabel: 'How comfortable are you?', low: 'Not really', high: 'Completely' }
+  { id: 'safe_to_raise_concerns', section: 'wellbeing', label: 'Do you feel comfortable speaking up in the team?', ratingLabel: 'How open can you be?', low: 'I hold back', high: 'I speak freely' }
 ];
 
 const SECTION_HEADERS = {
@@ -565,7 +565,7 @@ function App() {
         if (submission.wellness_checkin) {
           setWellnessMood(submission.wellness_checkin.mood || '');
           setWellnessEnergy(submission.wellness_checkin.energy_level || 3);
-          setWellnessWorkload(submission.wellness_checkin.workload_level || 3);
+          setWellnessWorkload(submission.wellness_checkin.target_confidence || submission.wellness_checkin.workload_level || 3);
           setWellnessComments(submission.wellness_checkin.comments || '');
         } else {
           // Reset if no wellness data
@@ -631,7 +631,7 @@ function App() {
             mood: wellnessMood,
             mood_score: moodScoreMap[wellnessMood],
             energy_level: wellnessEnergy,
-            workload_level: wellnessWorkload,
+            target_confidence: wellnessWorkload,
             comments: wellnessComments
           }
         })
@@ -1565,7 +1565,7 @@ RULES:
                       </div>
                     </div>
 
-                    {/* Energy Level (1-5 scale with colored slider) */}
+                    {/* Energy Level (1-5 scale with red-yellow-green gradient) */}
                     <div className="wellness-input-group">
                       <label className="wellness-label">Energy Level: {wellnessEnergy}/5</label>
                       <input
@@ -1576,7 +1576,14 @@ RULES:
                         onChange={(e) => setWellnessEnergy(parseInt(e.target.value))}
                         className="wellness-slider energy-slider"
                         style={{
-                          background: `linear-gradient(to right, #14B8A6 0%, #14B8A6 ${((wellnessEnergy - 1) / 4) * 100}%, #374151 ${((wellnessEnergy - 1) / 4) * 100}%, #374151 100%)`
+                          background: `linear-gradient(to right, #EF4444, #F59E0B, #10B981)`,
+                          height: '6px',
+                          borderRadius: '9999px',
+                          outline: 'none',
+                          width: '100%',
+                          cursor: 'pointer',
+                          WebkitAppearance: 'none',
+                          appearance: 'none',
                         }}
                         disabled={isViewingLocked}
                         data-testid="energy-slider"
@@ -1587,25 +1594,32 @@ RULES:
                       </div>
                     </div>
 
-                    {/* Workload Level (1-5 scale with colored slider) */}
+                    {/* Target Confidence (1-5 scale with red-yellow-green gradient) */}
                     <div className="wellness-input-group">
-                      <label className="wellness-label">Workload Level: {wellnessWorkload}/5</label>
+                      <label className="wellness-label">How are you feeling about achieving your targets this week? {wellnessWorkload}/5</label>
                       <input
                         type="range"
                         min="1"
                         max="5"
                         value={wellnessWorkload}
                         onChange={(e) => setWellnessWorkload(parseInt(e.target.value))}
-                        className="wellness-slider workload-slider"
+                        className="wellness-slider target-confidence-slider"
                         style={{
-                          background: `linear-gradient(to right, #14B8A6 0%, #14B8A6 ${((wellnessWorkload - 1) / 4) * 100}%, #374151 ${((wellnessWorkload - 1) / 4) * 100}%, #374151 100%)`
+                          background: `linear-gradient(to right, #EF4444, #F59E0B, #10B981)`,
+                          height: '6px',
+                          borderRadius: '9999px',
+                          outline: 'none',
+                          width: '100%',
+                          cursor: 'pointer',
+                          WebkitAppearance: 'none',
+                          appearance: 'none',
                         }}
                         disabled={isViewingLocked}
-                        data-testid="workload-slider"
+                        data-testid="target-confidence-slider"
                       />
                       <div className="slider-labels">
-                        <span>Low</span>
-                        <span>High</span>
+                        <span>Behind</span>
+                        <span>On track</span>
                       </div>
                     </div>
 

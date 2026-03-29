@@ -14,37 +14,26 @@ async def detect_flags_for_submission(submission_id: str, member_id: str, member
         {
             "field": "feeling_about_work",
             "threshold": 2,
+            "operator": "<=",
             "category": "wellbeing",
             "severity": "action_required",
-            "signal_template": "Wellbeing score at {rating}/5. {comment_snippet}"
+            "signal_template": "Feeling about work at {rating}/5. {comment_snippet}"
         },
         {
             "field": "safe_to_raise_concerns",
             "threshold": 2,
+            "operator": "<=",
             "category": "psychological_safety",
             "severity": "action_required",
-            "signal_template": "Safe to raise concerns score at {rating}/5. {comment_snippet}"
+            "signal_template": "Speaking up score at {rating}/5 (holding back). {comment_snippet}"
         },
         {
-            "field": "feel_supported",
-            "threshold": 2,
-            "category": "team_dynamics",
-            "severity": "action_required" if "field_rating" == 1 else "concern",
-            "signal_template": "Feel supported score at {rating}/5. {comment_snippet}"
-        },
-        {
-            "field": "workload_manageable",
-            "threshold": 2,
-            "category": "workload",
-            "severity": "action_required",
-            "signal_template": "Workload score at {rating}/5. {comment_snippet}"
-        },
-        {
-            "field": "target_confidence",
-            "threshold": 2,
-            "category": "performance_confidence",
-            "severity": "action_required",
-            "signal_template": "Performance confidence at {rating}/5. {comment_snippet}"
+            "field": "stuck_on",
+            "threshold": 4,
+            "operator": ">=",
+            "category": "performance",
+            "severity": "concern",
+            "signal_template": "Blocked rating at {rating}/5 (completely stuck). {comment_snippet}"
         }
     ]
     
@@ -57,7 +46,15 @@ async def detect_flags_for_submission(submission_id: str, member_id: str, member
             rating = response_item.get("rating", 0)
             comment = response_item.get("comment", "").strip()
             
-            if rating <= rule["threshold"]:
+            # Check threshold based on operator
+            operator = rule.get("operator", "<=")
+            trigger = False
+            if operator == "<=" and rating <= rule["threshold"]:
+                trigger = True
+            elif operator == ">=" and rating >= rule["threshold"]:
+                trigger = True
+            
+            if trigger:
                 # Determine severity based on rating
                 if rating == 1:
                     severity = "action_required"
@@ -191,11 +188,15 @@ async def detect_flags_for_submission(submission_id: str, member_id: str, member
                     "status": "open"
                 })
         
-        # Rule 3: Workload >= 8 triggers workload flag
-        if workload_level >= 8:
-            has_workload_flag = any(f["category"] == "workload" for f in flags)
-            if not has_workload_flag:
-                signal = f"Workload level at {workload_level}/10 (Heavy)"
+        # Rule 3: Target confidence <= 2 triggers performance flag
+        target_confidence = wellness_checkin.get("target_confidence", 3)
+        if target_confidence <= 2:
+            has_performance_flag = any(f["category"] == "performance" for f in flags)
+            if not has_performance_flag:
+                severity = "action_required" if target_confidence == 1 and energy_level <= 2 else "concern"
+                signal = f"Target confidence at {target_confidence}/5 (behind on targets)"
+                if energy_level <= 2:
+                    signal += f", Energy at {energy_level}/5"
                 if wellness_comments:
                     signal += f" - {wellness_comments[:100]}"
                 
@@ -203,8 +204,8 @@ async def detect_flags_for_submission(submission_id: str, member_id: str, member
                     "member_id": member_id,
                     "submission_id": submission_id,
                     "date": date,
-                    "category": "workload",
-                    "severity": "concern",
+                    "category": "performance",
+                    "severity": severity,
                     "signal": signal,
                     "comment_snippet": wellness_comments[:150] if wellness_comments else None,
                     "status": "open"

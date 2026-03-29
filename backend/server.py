@@ -593,18 +593,33 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     
     for sub in this_week_submissions:
         responses = sub.get("responses", {})
-        wellbeing_fields = ["feeling_about_work", "safe_to_raise_concerns", "feel_supported", "workload_manageable", "target_confidence"]
+        # Updated fields: removed workload_manageable, feel_supported, added target_confidence from wellness
+        wellbeing_fields = ["feeling_about_work", "safe_to_raise_concerns", "proud_of"]
         scores = []
+        
+        # Collect question ratings
         for field in wellbeing_fields:
             if responses.get(field) and isinstance(responses[field], dict):
                 rating = responses[field].get("rating")
                 if rating:
                     scores.append(rating)
         
-        # Add mood score from wellness check-in
+        # Add stuck_on INVERTED (5 = stuck = bad, so 6-rating gives contribution)
+        stuck_response = responses.get("stuck_on")
+        if stuck_response and isinstance(stuck_response, dict):
+            stuck_rating = stuck_response.get("rating")
+            if stuck_rating:
+                scores.append(6 - stuck_rating)  # Invert: 5 becomes 1, 1 becomes 5
+        
+        # Add wellness check-in scores
         wellness = sub.get("wellness_checkin", {})
-        if wellness and wellness.get("mood_score"):
-            scores.append(wellness["mood_score"])
+        if wellness:
+            if wellness.get("mood_score"):
+                scores.append(wellness["mood_score"])
+            if wellness.get("energy_level"):
+                scores.append(wellness["energy_level"])
+            if wellness.get("target_confidence"):
+                scores.append(wellness["target_confidence"])
         
         if scores:
             member_health = (sum(scores) / len(scores) / 5) * 100

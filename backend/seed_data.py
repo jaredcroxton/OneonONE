@@ -20,14 +20,14 @@ CURRENT_WEEK = "2026-03-23"
 def mk(r, c):
     return {"rating": r, "comment": c}
 
-# Helper for wellness check-in
-def wc(mood, energy, workload, comments=""):
+# Helper for wellness check-in (updated to use target_confidence)
+def wc(mood, energy, target_conf, comments=""):
     mood_scores = {"great": 5, "good": 4, "okay": 3, "stressed": 2, "exhausted": 1}
     return {
         "mood": mood,
         "mood_score": mood_scores[mood],
         "energy_level": energy,
-        "workload_level": workload,
+        "target_confidence": target_conf,
         "comments": comments
     }
 

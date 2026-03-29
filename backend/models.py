@@ -76,8 +76,8 @@ class ResponseItem(BaseModel):
 class WellnessCheckin(BaseModel):
     mood: str  # "great", "good", "okay", "stressed", "exhausted"
     mood_score: int  # 5, 4, 3, 2, 1
-    energy_level: int  # 1-10
-    workload_level: int  # 1-10
+    energy_level: int  # 1-5
+    target_confidence: int  # 1-5 (1=behind, 5=on track)
     comments: Optional[str] = ""
 
 class WeeklyReflection(BaseModel):
@@ -85,13 +85,9 @@ class WeeklyReflection(BaseModel):
     proud_of: Optional[ResponseItem] = None
     stuck_on: Optional[ResponseItem] = None
     need_from_manager: Optional[ResponseItem] = None
-    target_confidence: Optional[ResponseItem] = None
     # Wellbeing questions
     feeling_about_work: Optional[ResponseItem] = None
     safe_to_raise_concerns: Optional[ResponseItem] = None
-    feel_supported: Optional[ResponseItem] = None
-    workload_manageable: Optional[ResponseItem] = None
-    anything_affecting: Optional[ResponseItem] = None
 
 class SubmissionBase(BaseModel):
     member_id: str

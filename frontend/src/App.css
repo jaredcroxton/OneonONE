@@ -4115,3 +4115,44 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-on-dark-muted);
   font-weight: 500;
 }
+
+/* ============================================================
+   QUESTION SLIDERS (Reflection Questions)
+   ============================================================ */
+
+.question-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 12px 0;
+}
+
+.question-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.question-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.question-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

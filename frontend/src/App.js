@@ -95,22 +95,30 @@ function RatingCommentInput({ question, value, onChange, disabled }) {
       
       <div className="rating-row">
         <span className="rating-label">{question.ratingLabel}</span>
-        <span className="rating-hint">{question.low}</span>
-        <div className="rating-scale">
-          {[1, 2, 3, 4, 5].map(n => (
-            <button
-              key={n}
-              type="button"
-              className={`rating-btn ${v.rating === n ? 'selected' : ''}`}
-              onClick={() => !disabled && onChange({ ...v, rating: n })}
-              disabled={disabled}
-              data-testid={`rating-${question.id}-${n}`}
-            >
-              {n}
-            </button>
-          ))}
+        <input
+          type="range"
+          min="1"
+          max="5"
+          value={v.rating || 3}
+          onChange={(e) => !disabled && onChange({ ...v, rating: parseInt(e.target.value) })}
+          disabled={disabled}
+          className="question-slider"
+          style={{
+            background: `linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #84cc16 75%, #22c55e 100%)`,
+            height: '6px',
+            borderRadius: '9999px',
+            outline: 'none',
+            width: '100%',
+            cursor: 'pointer',
+            WebkitAppearance: 'none',
+            appearance: 'none',
+          }}
+          data-testid={`rating-${question.id}`}
+        />
+        <div className="slider-labels">
+          <span>{question.low}</span>
+          <span>{question.high}</span>
         </div>
-        <span className="rating-hint">{question.high}</span>
       </div>
 
       <div className="comment-box">
